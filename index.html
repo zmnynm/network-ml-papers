@@ -499,9 +499,14 @@
     </a></li>
   </ul>
 
+  <div class="sidebar-section">被审计论文 (Audited)</div>
+  <ul class="sidebar-nav">
+    <li><a href="#etbert" class="paper-link" onclick="showPaper('etbert')">
+      <span class="badge">WWW'22</span> ET-BERT
+    </a></li>
+  </ul>
   <div class="sidebar-section">待解读 (Queue)</div>
   <ul class="sidebar-nav">
-    <li><a style="opacity:0.4;cursor:default;">ET-BERT (WWW 2022)</a></li>
     <li><a style="opacity:0.4;cursor:default;">MM4flow (2025)</a></li>
     <li><a style="opacity:0.4;cursor:default;">TrafficFormer (2023)</a></li>
   </ul>
@@ -1019,6 +1024,182 @@
     </div>
 
   </div><!-- /#sok -->
+
+  <!-- ================================================================== -->
+  <!-- PAPER 3: ET-BERT                                                    -->
+  <!-- ================================================================== -->
+  <div id="etbert" class="paper-pane">
+
+    <div class="hero" style="background: linear-gradient(135deg, #1b0a2e 0%, #2d1045 50%, #1a1a5e 100%);">
+      <div class="tag" style="background:#8e44ad;">WWW 2022 · Pioneering Pre-training</div>
+      <h1>ET-BERT: A Contextualized Datagram Representation with Pre-training Transformers for Encrypted Traffic Classification</h1>
+      <div class="subtitle">将 BERT 预训练范式引入加密流量分类的开创性工作</div>
+      <div class="meta">
+        <span>Xinjie Lin, Gang Xiong, Gaopeng Gou, Zhen Li, Junzheng Shi, Jing Yu</span>
+        <span>中科院信工所 · 国科大网安学院</span>
+      </div>
+    </div>
+
+    <div class="one-liner" style="background: linear-gradient(135deg, #f5f0ff, #e8dff5); color: #4a1a7a; border-left-color: #8e44ad;">
+      ET-BERT 是第一个将 BERT 预训练 + 微调范式系统性应用于加密流量分类的工作。它提出 BURST（单向连续包序列）作为类"句子"的基本单元，通过 bigram tokenization + BPE 编码将流量转为 token，设计了两个预训练任务（MBM 字节级建模 + SBP 传输关系建模），在 5 个任务上取得了 92.5%~98.9% 的 F1 成绩。但后续 Sugar 和 SoK 论文<strong>系统性地证明其高准确率主要来自方法学缺陷</strong>（per-packet split + unfrozen encoder + 过时密码套件数据集），而非预训练学到了有意义的加密流量表征。
+    </div>
+
+    <!-- 1. 动机 -->
+    <div class="card">
+      <h2>1. 研究动机：ET-BERT 试图解决什么问题</h2>
+      <p>ET-BERT 识别了当时加密流量分类领域的三大局限：</p>
+
+      <div class="grid-3" style="margin-top:12px;">
+        <div class="stat-box">
+          <div class="num" style="font-size:16px; color:#8e44ad;">DPI/指纹匹配</div>
+          <div class="label">依赖明文（证书等）<br>TLS 1.3 下明文稀疏或模糊化</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="font-size:16px; color:#8e44ad;">统计特征 + ML</div>
+          <div class="label">高度依赖专家设计特征<br>泛化能力有限</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="font-size:16px; color:#8e44ad;">监督深度学习</div>
+          <div class="label">依赖大量标注数据<br>易产生模型偏差</div>
+        </div>
+      </div>
+
+      <div class="finding" style="margin-top:14px;">
+        <strong>核心挑战：</strong>如何利用开放域无标注流量数据，学习具有强泛化能力的流量表征，并在少量标注数据上微调即可达到高准确率？
+      </div>
+
+      <div class="solution" style="margin-top:14px;">
+        <div class="sol-tag">ET-BERT 提出的方法</div>
+        <strong>方案：预训练 + 微调范式。</strong>从大规模无标注加密流量中通过自监督学习获得 datagram-level 的通用流量表征（~30GB 数据，含公开数据集 + CSTNET 被动采集），然后在 5 个下游任务上使用少量标注数据微调。核心思路借鉴了 NLP 中 BERT 的成功：让模型在预训练阶段学到流量的"语言结构"，微调时只需适配分类头。
+      </div>
+    </div>
+
+    <!-- 2. Method -->
+    <div class="card">
+      <h2>2. 方法设计：BURST + bigram + 双预训练任务</h2>
+
+      <h3>输入表示：Datagram2Token</h3>
+      <div class="framework" style="margin-top:10px;">
+        <div class="level">
+          <span class="label-text">Step 1</span>
+          <div class="node" style="border-color:#8e44ad;">BURST Generator<br><small>同向连续包→BURST</small></div>
+          <div class="arrow" style="font-size:16px;">→</div>
+          <div class="node" style="border-color:#8e44ad;">BURST2Token<br><small>bigram→BPE编码<br>词典≤65536</small></div>
+          <div class="arrow" style="font-size:16px;">→</div>
+          <div class="node" style="border-color:#8e44ad;">Token2Embedding<br><small>Token + Position<br>+ Segment Emb</small></div>
+        </div>
+      </div>
+
+      <table style="margin-top:14px;">
+        <tr><th>设计要素</th><th>ET-BERT 选择</th><th>说明</th></tr>
+        <tr><td>基本单元</td><td><strong>BURST</strong></td><td>单向连续包的集合，受 HTML DOM 结构启发</td></tr>
+        <tr><td>Tokenization</td><td><strong>bigram + BPE</strong></td><td>相邻两字节 → 0~65535 整数 → BPE 子词编码</td></tr>
+        <tr><td>输入构造</td><td>BURST 等分为两个 sub-BURST</td><td>[CLS] sub-A [SEP] sub-B [SEP]，Segment Embedding 区分</td></tr>
+        <tr><td>嵌入层</td><td>Triple Embedding</td><td>Token Emb + Position Emb + Segment Emb</td></tr>
+        <tr><td>模型基座</td><td>BERT-base</td><td>12L / 768H / 12A / 512 max tokens / 132M params</td></tr>
+      </table>
+
+      <h3>两个预训练任务</h3>
+      <table style="margin-top:10px;">
+        <tr><th>任务</th><th>目标</th><th>细节</th></tr>
+        <tr>
+          <td><strong>MBM</strong><br>Masked BURST Model</td>
+          <td>捕捉同一 BURST 内不同字节之间的关联关系</td>
+          <td>随机 mask 15% token（80%→[MASK], 10%→随机替换, 10%→不变）<br>负对数似然损失</td>
+        </tr>
+        <tr>
+          <td><strong>SBP</strong><br>Same-origin BURST Prediction</td>
+          <td>对 BURST 间的传输关系建模</td>
+          <td>二分类：判断两个 sub-BURST 是否来自同一个 BURST<br>50% 正样本，50% 负样本</td>
+        </tr>
+      </table>
+      <p style="margin-top:8px;">联合损失：L = L_MBM + L_SBP。微调时使用 [CLS] token 的输出表征送入多分类器。</p>
+
+      <h3>关键结果</h3>
+      <table>
+        <tr><th>任务</th><th>数据集</th><th>类别数</th><th>ET-BERT F1</th><th>先前 SOTA F1</th></tr>
+        <tr><td>通用加密应用分类</td><td>Cross-Platform (Android/iOS)</td><td>196/215</td><td style="color:#8e44ad; font-weight:700;">92.5%</td><td>87.1%</td></tr>
+        <tr><td>VPN 加密流量分类</td><td>ISCX-VPN-Service</td><td>12</td><td style="color:#8e44ad; font-weight:700;">98.9%</td><td>93.7%</td></tr>
+        <tr><td>TLS 1.3 应用分类</td><td>CSTNET-TLS 1.3</td><td>120</td><td style="color:#8e44ad; font-weight:700;">97.4%</td><td>87.4%</td></tr>
+        <tr><td>Tor 加密应用分类</td><td>ISCX-Tor</td><td>16</td><td style="color:#8e44ad; font-weight:700;">96.2%</td><td>91.8%</td></tr>
+        <tr><td>加密恶意软件分类</td><td>USTC-TFC</td><td>20</td><td style="color:#8e44ad; font-weight:700;">99.3%</td><td>99.1%</td></tr>
+      </table>
+    </div>
+
+    <!-- 3. Cipher Randomness Argument -->
+    <div class="card">
+      <h2>3. ET-BERT 的核心论点：密码随机性分析</h2>
+      <p>ET-BERT 的一个关键理论贡献是试图为"加密流量中存在可学习模式"提供<strong>密码学解释</strong>：</p>
+
+      <div class="finding" style="margin-top:12px;">
+        <strong>ET-BERT 的论据：</strong>通过 15 组 NIST 随机性测试评估 AES(GCM)、AES(CBC)、CHA20、ARC4、3DES 的随机性，发现这些密码算法<strong>"在实践中确实达不到完美随机性"</strong>。密码分布越弱（如数据集包含 RC4/3DES），分类效果越好。这为"加密流量中存在可学习模式"提供了理论解释。
+      </div>
+
+      <div class="issue-solution-pair" style="margin-top:14px;">
+        <div class="issue">
+          <strong>后续批判（SoK 2025）：</strong>ET-BERT 的密码随机性分析使用了<strong>已弃用的密码套件</strong>（RC4、3DES、AES-CBC）。TLS 1.3 强制使用 AEAD 密码（AES-GCM、ChaCha20-Poly1305），每次加密使用唯一 IV，同一明文永远产生不同密文。ET-BERT 所使用的 ISCXVPN2016 数据集含 98.9% 未加密流量和 RC4/3DES 密钥套件，其"随机性分析"不能推广到现代 TLS 1.3 加密。<br><br>
+          <strong>后续批判（Sugar 2025）：</strong>ET-BERT 使用 per-packet split（按包随机划分训练/测试集）+ unfrozen encoder（下游训练解冻编码器），导致模型通过隐式流标识符走捷径。当用正确的 per-flow split + frozen encoder 评估时，ET-BERT 准确率崩溃至 10.9%。将预训练权重替换为随机初始化后，性能几乎不变（97.1% vs 97.4%），说明预训练几乎无贡献。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">ET-BERT 设计中的方法论教训</div>
+          <strong>(1) 数据集问题：</strong>预训练数据中 ISCX-VPN 同时出现在预训练和下游评估中（非跨数据集泛化），且该数据集几乎不含加密流量。<br>
+          <strong>(2) 密码假设过于宽松：</strong>将 RC4/3DES/AES-CBC 等已弃用密码的"不完美随机性"推广到 TLS 1.3 AEAD 密码，在密码学上不成立。<br>
+          <strong>(3) 评估协议不完整：</strong>per-packet split + unfrozen encoder 掩盖了表征学习的真实质量。应采用 per-flow split + frozen encoder + 随机初始化消融作为标准评估。
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Design Data Processing -->
+    <div class="card">
+      <h2>4. 数据处理方式与后续批判</h2>
+
+      <div class="issue-solution-pair">
+        <div class="issue">
+          <strong>ET-BERT 的数据处理实践：</strong>
+          <ul style="margin:6px 0 0 16px;">
+            <li>剔除 ARP、DHCP 等无关协议包 ✓</li>
+            <li><strong>去除 Ethernet header、IP header、TCP/UDP 端口号</strong>（避免 SII bias）✓</li>
+            <li>每类最多随机选 500 flows、5000 packets</li>
+            <li>按 8:1:1 划分训练/验证/测试</li>
+            <li><strong>使用 per-packet split</strong>（非 per-flow split）⚠️</li>
+          </ul>
+        </div>
+        <div class="solution">
+          <div class="sol-tag">分析</div>
+          ET-BERT 在<strong>去除 SII（IP/端口/MAC）方面</strong>做出了正确的设计选择（SoK 论文对此表示认可，在 Table 1 中将 ET-BERT 标注为"不使用 SII"的研究之一）。但<strong>per-packet split 是致命缺陷</strong>——即使去除了显式的 IP/端口，同一 TCP 流的包仍可通过隐式标识符（SeqNo/AckNo/Timestamp 等）关联，使模型在该捷径上过拟合。Sugar 2025 证明仅修正 split 方式就使 ET-BERT 准确率从 97.4% 降至 28.0%。
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Summary -->
+    <div class="card" style="background: linear-gradient(135deg, #f5f0ff, #e8dff5);">
+      <h2 style="border-bottom-color:#8e44ad;">5. 总结：贡献与历史定位</h2>
+      <p style="font-weight:600; color:#4a1a7a;">
+        ET-BERT 是加密流量预训练领域的<strong>开创性工作</strong>（WWW 2022, 被引>380次），首次将 BERT 预训练范式系统性引入该领域，提出的 BURST + bigram tokenization + MBM/SBP 双预训练任务设计影响了后续大量工作（YaTC、TrafficFormer、MM4flow 等）。
+      </p>
+      <p style="color:#4a1a7a;"">
+        然而，Sugar (SIGCOMM 2025) 和 SoK (IEEE S&P 2025) 的独立审计表明：ET-BERT 报告的高准确率（92.5%~98.9%）大部分来自<strong>方法学缺陷</strong>（per-packet split + 过时数据集 + unfrozen encoder），而非预训练学到的有意义的加密流量表征。在正确评估下（per-flow split + frozen encoder），ET-BERT 的表现（F1 ~10.9%）远逊于简单的浅层模型（LightGBM + 手工包头特征, F1 82.4%）。
+      </p>
+      <p style="color:#4a1a7a; margin-top:8px;">
+        <strong>历史意义：</strong>ET-BERT 是这条批判链的起点——它提出了一个重要的研究方向，但其方法论缺陷催生了后续的批判性审计。将 ET-BERT、Sugar、SoK 三篇论文连读，可以完整地看到"一个领域从方法论建立到被系统性审计修正"的全过程。
+      </p>
+    </div>
+
+    <!-- Paper info -->
+    <div class="card">
+      <h2>论文信息</h2>
+      <table style="text-align:left;">
+        <tr><td style="width:100px; font-weight:600;">发表会议</td><td>ACM The Web Conference (WWW) 2022</td></tr>
+        <tr><td style="font-weight:600;">作者机构</td><td>中科院信息工程研究所 · 中国科学院大学网安学院</td></tr>
+        <tr><td style="font-weight:600;">代码开源</td><td><a href="https://github.com/linwhitehat/ET-BERT" target="_blank">github.com/linwhitehat/ET-BERT</a></td></tr>
+        <tr><td style="font-weight:600;">模型参数</td><td>BERT-base (12L/768H/12A), 132.19M 参数</td></tr>
+        <tr><td style="font-weight:600;">预训练数据</td><td>~30GB 无标注流量（ISCX-VPN + CIC-IDS2017 + CSTNET）</td></tr>
+        <tr><td style="font-weight:600;">被审计于</td><td>Sugar (SIGCOMM 2025) + SoK (IEEE S&P 2025) — 两者都将其列为核心批判对象</td></tr>
+        <tr><td style="font-weight:600;">与本仓库关联</td><td>流量预训练模型的基准工作；与 Sugar/SoK 构成"提出→审计→修正"的完整批判链</td></tr>
+      </table>
+    </div>
+
+  </div><!-- /#etbert -->
 
 </main>
 
