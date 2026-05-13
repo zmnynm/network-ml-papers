@@ -1,7 +1,7 @@
 {
-  "id": "test-001",
-  "message": "你好，请自我介绍一下，并告诉我你能做什么？",
+  "message": "将冻结编码器（frozen encoder）评估作为标准协议。只有冻结编码器权重时，才能真实反映预训练表征本身携带的可迁移知识。冻结编码器指的是什么，",
   "paper": "sugar",
-  "context": "test message",
-  "timestamp": "2025-05-13T00:00:00.000Z"
+  "context": "user is reading the paper analysis dashboard",
+  "id": "1778676739764",
+  "timestamp": "2026-05-13T12:52:19.764Z"
 }
