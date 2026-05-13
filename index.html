@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>加密流量分类 ML — 论文批判性解读</title>
+<style>
+  /* ====== RESET & BASE ====== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f6f8;
+    --sidebar-bg: #1a1a2e;
+    --sidebar-text: #c8ccd4;
+    --sidebar-active: #fff;
+    --card-bg: #ffffff;
+    --text: #2c3e50;
+    --text-secondary: #555;
+    --accent: #c0392b;
+    --accent2: #2980b9;
+    --accent3: #27ae60;
+    --border: #e0e0e0;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --danger-bg: #fdf2f2;
+    --info-bg: #eaf2f8;
+    --success-bg: #eafaf1;
+    --warn-bg: #fef9e7;
+    --solution-bg: #e8f5e9;
+    --solution-border: #27ae60;
+    --sidebar-width: 280px;
+  }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== SIDEBAR ====== */
+  .sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 100;
+    overflow-y: auto;
+    transition: transform 0.3s;
+  }
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .sidebar-header h1 {
+    font-size: 17px;
+    color: #fff;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+  .sidebar-header .sub {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .sidebar-section {
+    padding: 12px 20px 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    font-weight: 700;
+  }
+  .sidebar-nav { list-style: none; padding: 0; }
+  .sidebar-nav li { margin: 0; }
+  .sidebar-nav a {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 20px;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 14px;
+    line-height: 1.35;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .sidebar-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .sidebar-nav a.active {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-left-color: #2980b9;
+    font-weight: 600;
+  }
+  .sidebar-nav a .badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    background: rgba(255,255,255,0.15);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 400;
+  }
+  .sidebar-nav a.active .badge { background: #2980b9; }
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    font-size: 11px;
+    opacity: 0.4;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-footer a { color: inherit; }
+
+  /* Mobile toggle */
+  .sidebar-toggle {
+    display: none;
+    position: fixed; top: 12px; left: 12px; z-index: 200;
+    background: #1a1a2e; color: #fff; border: none;
+    width: 40px; height: 40px; border-radius: 8px;
+    font-size: 20px; cursor: pointer;
+  }
+
+  /* ====== MAIN CONTENT ====== */
+  .main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 24px 32px;
+    max-width: 1040px;
+    width: calc(100% - var(--sidebar-width));
+  }
+  .paper-pane { display: none; }
+  .paper-pane.active { display: block; }
+
+  /* ====== WELCOME PANE ====== */
+  .welcome {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 60vh; text-align: center;
+  }
+  .welcome h2 { font-size: 24px; color: #1a1a2e; margin-bottom: 8px; }
+  .welcome p { color: var(--text-secondary); max-width: 480px; }
+  .welcome .stats { display: flex; gap: 24px; margin-top: 28px; }
+  .welcome .stat { text-align: center; }
+  .welcome .stat .n { font-size: 36px; font-weight: 800; color: #2980b9; }
+  .welcome .stat .l { font-size: 13px; color: var(--text-secondary); }
+
+  /* ====== HERO ====== */
+  .hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+  .hero.sok-hero { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #1a3a5c 100%); }
+  .hero .tag {
+    display: inline-block;
+    font-size: 12px; font-weight: 700; padding: 3px 12px;
+    border-radius: 4px; letter-spacing: 0.5px; margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .hero .tag-red { background: #e74c3c; color: #fff; }
+  .hero .tag-blue { background: #2980b9; color: #fff; }
+  .hero h1 { font-size: 24px; margin: 0 0 6px; line-height: 1.35; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-bottom: 10px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; }
+  .hero .meta span { margin-right: 16px; }
+
+  /* ====== CARDS ====== */
+  .card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 19px;
+    margin: 0 0 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h3 {
+    font-size: 15px;
+    margin: 16px 0 8px;
+    color: var(--accent2);
+  }
+
+  /* ====== BOXES ====== */
+  .one-liner {
+    border-left: 4px solid var(--accent2);
+    padding: 18px 22px;
+    border-radius: 0 8px 8px 0;
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 22px;
+  }
+  .one-liner-red {
+    background: linear-gradient(135deg, #fff5f5, #ffeaea);
+    color: #922b21;
+    border-left-color: var(--accent);
+  }
+  .one-liner-blue {
+    background: linear-gradient(135deg, #eaf2f8, #d6eaf8);
+    color: #1a5276;
+    border-left-color: var(--accent2);
+  }
+  .issue {
+    border-left: 4px solid var(--accent);
+    background: var(--danger-bg);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 0;
+  }
+  .issue strong { color: var(--accent); }
+  .solution {
+    border-left: 4px solid var(--solution-border);
+    background: var(--solution-bg);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 0;
+    border-top: 1px solid #c8e6c9;
+    border-right: 1px solid #c8e6c9;
+    border-bottom: 1px solid #c8e6c9;
+  }
+  .solution .sol-tag {
+    display: inline-block;
+    background: var(--accent3);
+    color: #fff;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .solution strong { color: #1e7e34; }
+  .issue-solution-pair {
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .issue-solution-pair .issue { border-radius: 8px 8px 0 0; border-bottom: none; }
+  .issue-solution-pair .solution { border-radius: 0 0 8px 8px; }
+  .finding {
+    border-left: 4px solid var(--accent2);
+    background: var(--info-bg);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 14px 0;
+  }
+  .positive {
+    border-left: 4px solid var(--accent3);
+    background: var(--success-bg);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 14px 0;
+  }
+  .takeaway {
+    border-left: 4px solid #e67e22;
+    background: #fef9e7;
+    padding: 10px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+
+  /* ====== TABLES ====== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  th {
+    background: #2c3e50;
+    color: #fff;
+    padding: 9px 10px;
+    text-align: center;
+    font-weight: 600;
+  }
+  td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ====== GRIDS ====== */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .stat-box {
+    text-align: center;
+    padding: 16px 12px;
+    border-radius: 8px;
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+  }
+  .stat-box .num { font-size: 24px; font-weight: 800; color: var(--accent2); }
+  .stat-box .num.red { color: var(--accent); }
+  .stat-box .label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ====== GUIDELINES ====== */
+  .guideline {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin: 8px 0; padding: 10px 14px;
+    background: #f8fdf9; border-radius: 8px;
+    border: 1px solid #d5f5e3;
+  }
+  .guideline .g-num {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    background: var(--accent3); color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px;
+  }
+  .guideline .g-text { font-size: 13px; }
+
+  /* ====== FRAMEWORK ====== */
+  .framework {
+    background: #f0f4f8;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 14px 0;
+  }
+  .framework .level {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; flex-wrap: wrap; margin: 8px 0;
+  }
+  .framework .node {
+    background: #fff;
+    border: 2px solid var(--accent2);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-weight: 600; font-size: 13px;
+    text-align: center;
+  }
+  .framework .node.sel {
+    background: #2980b9; color: #fff; border-color: #2980b9;
+  }
+  .framework .label-text {
+    font-weight: 700; color: var(--accent2); font-size: 13px; margin-right: 8px;
+  }
+  .framework .arrow-down {
+    text-align: center; font-size: 18px; color: var(--accent2); margin: 2px 0;
+  }
+
+  /* ====== FLOW ====== */
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px;
+  }
+  .flow .step {
+    background: #f0f4f8;
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center; font-weight: 600;
+    border: 1px dashed var(--accent2);
+  }
+  .flow .arrow { font-size: 16px; color: var(--accent2); }
+
+  /* ====== SUMMARY CARD ====== */
+  .summary-card {
+    border-radius: 10px; padding: 28px 32px; margin-bottom: 18px;
+  }
+  .summary-red { background: linear-gradient(135deg, #fef9e7, #fdebd0); }
+  .summary-red h2 { border-bottom-color: #e67e22; }
+  .summary-blue { background: linear-gradient(135deg, #eaf2f8, #d6eaf8); }
+  .summary-blue h2 { border-bottom-color: #2980b9; }
+
+  /* ====== BACK TO TOP ====== */
+  .back-top {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #1a1a2e; color: #fff; border: none;
+    font-size: 18px; cursor: pointer; opacity: 0.7;
+    z-index: 50; display: none;
+  }
+  .back-top:hover { opacity: 1; }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+    .main { margin-left: 0; width: 100%; padding: 16px; }
+    .hero { padding: 20px; }
+    .hero h1 { font-size: 20px; }
+    .card { padding: 16px 14px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .back-top { bottom: 16px; right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== SIDEBAR TOGGLE (mobile) ====== -->
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle sidebar">☰</button>
+
+<!-- ====== SIDEBAR ====== -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <h1>加密流量分类 ML<br>论文批判性解读</h1>
+    <div class="sub">Network Traffic Classification — Critical Reading</div>
+  </div>
+
+  <div class="sidebar-section">批判性审计 (Critique & Audit)</div>
+  <ul class="sidebar-nav">
+    <li><a href="#sugar" class="paper-link active" onclick="showPaper('sugar')">
+      <span class="badge">SIGCOMM'25</span> The Sweet Danger of Sugar
+    </a></li>
+    <li><a href="#sok" class="paper-link" onclick="showPaper('sok')">
+      <span class="badge">IEEE S&P'25</span> SoK: Decoding the Enigma of Encrypted NTC
+    </a></li>
+  </ul>
+
+  <div class="sidebar-section">待解读 (Queue)</div>
+  <ul class="sidebar-nav">
+    <li><a style="opacity:0.4;cursor:default;">ET-BERT (WWW 2022)</a></li>
+    <li><a style="opacity:0.4;cursor:default;">MM4flow (2025)</a></li>
+    <li><a style="opacity:0.4;cursor:default;">TrafficFormer (2023)</a></li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <a href="https://github.com" target="_blank">GitHub Pages</a> · 2025
+  </div>
+</nav>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main" id="mainContent">
+
+  <!-- ====== WELCOME ====== -->
+  <div id="welcome" class="paper-pane active">
+    <div class="welcome">
+      <h2>加密流量分类 ML — 论文批判性解读</h2>
+      <p>收录关于加密流量分类中机器学习方法的批判性审计论文解读。每篇解读采用<strong>问题 → 解决方案</strong>配对结构，系统性地呈现论文揭示的方法学缺陷及相应的修复方案。</p>
+      <div class="stats">
+        <div class="stat"><div class="n">2</div><div class="l">已解读论文</div></div>
+        <div class="stat"><div class="n">12+</div><div class="l">待解读论文</div></div>
+        <div class="stat"><div class="n">2</div><div class="l">覆盖顶会</div></div>
+      </div>
+      <p style="margin-top:24px; font-size:14px;">← 点击左侧导航切换论文</p>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- PAPER 1: SWEET DANGER OF SUGAR                                    -->
+  <!-- ================================================================== -->
+  <div id="sugar" class="paper-pane">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="tag tag-red">SIGCOMM 2025 · Debunking Paper</div>
+      <h1>The Sweet Danger of Sugar:<br>Debunking Representation Learning for Encrypted Traffic Classification</h1>
+      <div class="subtitle">糖的甜蜜危险：揭穿加密流量分类中表征学习的假象</div>
+      <div class="meta">
+        <span>Yuqi Zhao, Giovanni Dettori, Matteo Boffa, Luca Vassio, Marco Mellia</span>
+        <span>Politecnico di Torino</span>
+      </div>
+    </div>
+
+    <!-- One-liner -->
+    <div class="one-liner one-liner-red">
+      这篇论文对近年来基于表征学习（BERT-style pre-training）的加密流量分类方法进行了系统性"打假"——作者证明，此前文献中高达98%的分类准确率几乎完全来自数据泄露（per-packet split + 隐式流标识符捷径）和端到端有监督重训练，而非预训练学到的有意义的流量表征。论文同时提出了四条评估规范（黄金法则）和建设性反例Pcap-Encoder，为领域建立了正确的方法论基准。
+    </div>
+
+    <!-- 1. 研究动机 -->
+    <div class="card">
+      <h2>1. 研究动机：为什么写这篇论文？</h2>
+      <p>近年来，受BERT等大语言模型成功的启发，大量工作将"预训练 + 微调"范式引入加密流量分类领域：</p>
+      <div class="grid-3" style="margin-top:12px;">
+        <div class="stat-box"><div class="num" style="font-size:20px;">ET-BERT</div><div class="label">BERT-base, 132M参数<br>WWW 2022</div></div>
+        <div class="stat-box"><div class="num" style="font-size:20px;">YaTC</div><div class="label">Vision Transformer + MAE<br>AAAI 2023</div></div>
+        <div class="stat-box"><div class="num" style="font-size:20px;">NetMamba</div><div class="label">Mamba + MAE<br>ICNP 2024</div></div>
+      </div>
+      <p style="margin-top:14px;">这些模型一致声称在加密流量分类上达到了 <strong>95%~99%</strong> 的准确率。但<strong>强加密算法下，加密载荷的字节之间不存在统计相关性</strong>——这些"惊人"的结果违背了基本的密码学常识。</p>
+      <div class="finding" style="margin-top:14px;">
+        <strong>核心问题：</strong>这些模型真的学到了有意义的流量表征，还是仅仅利用了数据准备中的捷径（shortcuts）——即特征与标签之间的虚假相关性？
+      </div>
+      <div class="solution" style="margin-top:14px;">
+        <div class="sol-tag">论文提出的解决方法</div>
+        <strong>方法论：建立网络领域知识与机器学习评估的桥梁。</strong>论文提出了一套系统的审计框架——从网络专家的视角出发，逐一审查数据划分方式、预训练目标的密码学合理性、评估协议（冻结vs解冻编码器）、以及与简单基线的成本-收益对比。这套框架不仅用于"打假"，更作为领域未来工作的评估规范（即后文的四条黄金法则），确保表征学习方法的性能声称经得起领域知识检验。同时开源全部审计代码供社区独立复现。
+      </div>
+    </div>
+
+    <!-- 2. 六大核心发现 -->
+    <div class="card">
+      <h2>2. 六大核心发现（问题 → 解决方案）</h2>
+
+      <h3>致命问题 1：Per-Packet Split 导致严重数据泄露</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          <strong>问题：</strong>所有先前工作都采用 <strong>per-packet random split</strong>，导致同一个TCP流的不同数据包可能同时出现在训练集和测试集中。模型可以通过 <strong>隐式流标识符</strong>（TCP SeqNo/AckNo 构成约64位的隐式流ID空间、TCP Timestamp）将测试包链接到训练集中的同一流，进而获取其标签。<br><br>
+          <strong>证据：</strong>仅将测试集中的SeqNo/AckNo/Timestamp随机化，ET-BERT准确率从 <strong>97.4% → 19.5%</strong>（↓约80个百分点）。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：强制使用 per-flow split（按流划分训练/测试集）。</strong>确保同一TCP/UDP流（由五元组标识）的所有数据包完整地归属到训练集或测试集中的一侧。同时<strong>随机化或移除 TCP SeqNo/AckNo/Timestamp 等隐式流标识符</strong>——在真实部署场景中，这些字段会因NAT、负载均衡、网络拓扑变化等因素发生变化。论文通过实验证明，仅此一项修复即可使声称的97.4%准确率降至28.0%。
+        </div>
+      </div>
+
+      <table>
+        <tr><th>实验设置</th><th>ET-BERT TLS-120 准确率</th><th>说明</th></tr>
+        <tr><td>Per-packet split + Unfrozen（原论文方式）</td><td><strong>97.4%</strong></td><td style="color:#e74c3c">复现了"惊人"结果</td></tr>
+        <tr><td>同上，但测试集随机化SeqNo/AckNo/TS</td><td style="color:#e74c3c; font-weight:700;">19.5%</td><td>去掉隐式流ID后崩溃</td></tr>
+        <tr><td>同上，训练集+测试集都去掉隐式流ID</td><td>52.2%</td><td>模型另寻他路，但远不够好</td></tr>
+        <tr><td>Per-flow split + Unfrozen</td><td style="color:#e74c3c; font-weight:700;">28.0%</td><td>正确评估方式下的真实水平</td></tr>
+        <tr><td>Per-flow split + Frozen encoder</td><td style="color:#e74c3c; font-weight:700;">10.9%</td><td>表征本身几乎无用</td></tr>
+      </table>
+
+      <h3>致命问题 2：预训练几乎无用</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          <strong>问题：</strong>在正确评估（per-flow split + 冻结编码器）下，所有先前模型的准确率均低于30%。<br><br>
+          <strong>最致命证据：</strong>将ET-BERT的预训练权重替换为随机初始化，下游有监督训练结果：<strong>97.1% vs 原预训练版的97.4%</strong>。预训练<strong>几乎没有贡献任何东西</strong>，性能完全来自Transformer架构 + 端到端有监督训练。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：对每个声称"预训练有效"的模型，强制进行随机初始化消融实验。</strong>将预训练权重替换为随机初始化，保持架构和训练配置不变。如果预训练版和随机初始化版无显著差异，则预训练阶段没有提供任何有价值的知识。<br><br>
+          <strong>方案：将冻结编码器（frozen encoder）评估作为标准协议。</strong>只有冻结编码器权重时，才能真实反映预训练表征本身携带的可迁移知识。
+        </div>
+      </div>
+
+      <h3>致命问题 3：在加密载荷上做MAE从根本上就是错误的</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          <strong>问题：</strong>ET-BERT、YaTC、NetMamba等所有模型都使用 <strong>Masked Autoencoder (MAE)</strong> 作为预训练任务——mask掉部分字节，让模型从剩余字节中重建被mask的字节。但在<strong>强加密</strong>下，加密载荷的字节之间<strong>不存在任何统计相关性</strong>——这是密码学的基本属性。让模型从加密后的随机字节中"重建"被mask的部分，在数学上没有意义。<br><br>
+          <strong>证据：</strong>Pcap-Encoder去掉应用层载荷，TLS-120的Macro F1从63.7→63.6（几乎不变）；但去掉TCP/IP头则崩溃至1.5。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：将预训练目标从"重建加密载荷"改为"理解协议头部语义"。</strong>Pcap-Encoder的Phase 2 Q&A预训练提供了具体替代方案：定义8类协议头部问题（如"数据包的目的IP地址是什么？""IP校验和是否正确？"），迫使模型从<strong>非加密的协议头部字段</strong>中提取结构化语义。<br><br>
+          <strong>方案：引入载荷贡献消融实验作为强制验证项。</strong>必须单独报告"去掉加密载荷"和"去掉协议头部"两种条件下的性能变化。如果去掉加密载荷后性能几乎不变，说明模型并未从加密载荷中学到任何有用信息。
+        </div>
+      </div>
+
+      <h3>致命问题 4：浅层模型 + 手工特征 完胜所有深度模型</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          使用随机森林、XGBoost、LightGBM等浅层模型，配合网络专家手工提取的包头特征（IP、端口、TTL、TCP Window等），在TLS-120上达到 <strong>82.4% Macro F1</strong>，远超Pcap-Encoder的63.7%，同时推理速度快 <strong>200倍</strong>。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：将浅层模型 + 手工特征作为所有流量分类工作的强制性基线。</strong>论文定义了完整的网络专家手工特征集（IP地址、端口号、TTL、TCP Window Size、包长度等可直接从包头提取的字段），配合LightGBM/XGBoost/Random Forest作为基准。任何新的深度学习方法必须在此基线上展现出实质性性能增益，并考虑部署成本，方有存在价值。
+        </div>
+      </div>
+
+      <table>
+        <tr><th>模型</th><th>TLS-120 Macro F1 (per-flow, frozen)</th><th>相对推理时间</th></tr>
+        <tr><td>LightGBM (手工特征)</td><td style="font-weight:700; color:#27ae60">82.4%</td><td>~1x</td></tr>
+        <tr><td>Pcap-Encoder</td><td>63.7%</td><td>~200x</td></tr>
+        <tr><td>TrafficFormer</td><td>24.0%</td><td>~30x</td></tr>
+        <tr><td>ET-BERT</td><td>6.7%</td><td>~16x</td></tr>
+        <tr><td>netFound</td><td>0.5%</td><td>~2048x</td></tr>
+      </table>
+
+      <h3>致命问题 5：数据处理实践普遍存在问题</h3>
+
+      <div class="issue-solution-pair">
+        <div class="issue"><strong>子问题 A — 无关协议污染：</strong>ISCX-VPN和USTC-TFC数据集中包含5%~10%的无关协议（ARP, DHCP, LLMNR, STUN, ICMP等），许多先前工作未做过滤。</div>
+        <div class="solution"><div class="sol-tag">论文提出的解决方法</div><strong>方案：在预处理阶段过滤所有非目标协议的数据包</strong>（ARP, DHCP, LLMNR, STUN, ICMP, MDNS, NBNS, SSDP等），仅保留TCP/UDP传输层协议。<strong>必须透明报告过滤规则。</strong></div>
+      </div>
+
+      <div class="issue-solution-pair">
+        <div class="issue"><strong>子问题 B — 最小尺寸过滤：</strong>ET-BERT过滤掉所有小于80字节的包（丢弃TCP ACK信令包），TrafficFormer过滤少于3个包的流——这些操作改变了分类任务本身的定义。</div>
+        <div class="solution"><div class="sol-tag">论文提出的解决方法</div><strong>方案：不要使用最小包尺寸或最小流长度过滤。</strong>如果模型架构确实需要固定输入尺寸，应使用padding（填充）而非过滤。若必须过滤，必须<strong>明确报告过滤掉的包/流比例和对每类分布的影响。</strong></div>
+      </div>
+
+      <div class="issue-solution-pair">
+        <div class="issue"><strong>子问题 C — 类别支持度过滤：</strong>许多工作丢弃稀有类或限制每类样本数，人为改变了数据分布，脱离真实场景的类别不平衡问题。</div>
+        <div class="solution"><div class="sol-tag">论文提出的解决方法</div><strong>方案：保留原始数据分布（包括稀有类），透明报告所有类别过滤操作。</strong>如果确实需要处理类别不平衡，应使用类别加权损失函数或重采样策略，而非直接丢弃稀有类。</div>
+      </div>
+
+      <div class="issue-solution-pair">
+        <div class="issue"><strong>子问题 D — 预训练与下游数据集重复使用：</strong>ET-BERT将ISCX-VPN同时用于预训练和下游评估——这不是真正的跨数据集泛化。</div>
+        <div class="solution"><div class="sol-tag">论文提出的解决方法</div><strong>方案：预训练和下游评估必须使用不同的数据集。</strong>Pcap-Encoder的Phase 1和Phase 2分别使用独立收集的数据，下游评估使用TLS-120等标准基准——确保下游性能反映跨域泛化能力。</div>
+      </div>
+
+      <h3>致命问题 6：Unfrozen Encoder 掩盖了表征学习的失败</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          所有先前工作在下游任务训练时都<strong>解冻编码器</strong>（unfrozen encoder）。当编码器在数十万有监督样本上解冻训练时，模型本质上是<strong>从零开始重新学习</strong>，覆盖了任何预训练知识。<br><br>
+          <strong>冻结编码器：</strong>71%的数据包在嵌入空间中，其5个最近邻中<strong>0个</strong>属于同一类别<br>
+          <strong>解冻编码器后：</strong>97%的数据包的5个最近邻全部属于同一类别
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：将冻结编码器（frozen encoder）作为评估表征学习质量的强制性协议。</strong>在下游训练中冻结预训练编码器的所有权重，仅训练一个轻量分类头。<br><br>
+          <strong>方案：使用5-NN纯度作为嵌入空间质量的直接度量。</strong>对于每个测试样本，计算其在嵌入空间中5个最近邻中属于同一类别的比例。这是一个零监督度量——不需要任何下游训练就能判断表征是否形成了有意义的类可分结构。
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Pcap-Encoder -->
+    <div class="card">
+      <h2>3. 建设性反例：Pcap-Encoder</h2>
+      <p>作者构建了一个"正确设计的"表征学习模型作为对照——<strong>Pcap-Encoder</strong>，基于T5-base（约220M参数）。</p>
+      <div class="positive" style="margin-top:10px;">
+        <strong>核心思想：</strong>明确地让模型从<strong>协议头部</strong>（protocol headers）中提取信息，而非加密载荷。IP地址、TTL、TCP窗口大小、端口号等头部字段携带了流量分类的绝大部分判别信息。
+      </div>
+      <div class="flow" style="margin-top:16px;">
+        <div class="step">Phase 1<br>Autoencoder<br><small>500k数据包</small></div>
+        <div class="arrow">→</div>
+        <div class="step">Phase 2<br>Q&A<br><small>50k问题实例<br>8类协议头部问题</small></div>
+        <div class="arrow">→</div>
+        <div class="step">下游分类<br><small>冻结编码器<br>+ MLP分类头</small></div>
+      </div>
+
+      <table style="margin-top:14px;">
+        <tr><th>Pcap-Encoder 变体</th><th>TLS-120 Accuracy</th><th>TLS-120 Macro F1</th></tr>
+        <tr><td>完整模型 (Autoencoder + Q&A)</td><td style="font-weight:700; color:#27ae60">71.0%</td><td style="font-weight:700; color:#27ae60">63.7%</td></tr>
+        <tr><td>仅 Q&A（去掉Autoencoder）</td><td>63.6%</td><td>57.2%</td></tr>
+        <tr><td>仅 T5-base（无任何预训练）</td><td style="color:#e74c3c">8.5%</td><td style="color:#e74c3c">2.5%</td></tr>
+        <tr><td>完整模型，去掉IP地址</td><td>—</td><td>13.0%</td></tr>
+        <tr><td>完整模型，去掉整个TCP/IP头</td><td>—</td><td>1.5%</td></tr>
+        <tr><td>完整模型，去掉应用层载荷</td><td>—</td><td>63.6%（几乎不变）</td></tr>
+      </table>
+
+      <h3>Pcap-Encoder 的局限性及论文给出的应对</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          <strong>局限性 1：</strong>计算开销大——推理速度比随机森林慢约 200倍。<br>
+          <strong>局限性 2：</strong>性能不如浅层模型——LightGBM 82.4% vs Pcap-Encoder 63.7%。<br>
+          <strong>局限性 3：</strong>严重依赖IP地址——去掉IP后性能大幅下降（63.7→13.0）。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文的立场与应对</div>
+          <strong>论点：Pcap-Encoder不是产品，而是方法论证明。</strong>即使一个"正确设计"的表征学习模型，在加密流量分类任务上也难以超越简单基线。因此未来工作中如果没有充分的成本-收益论证，就不应盲目采用深度表征学习方法。<br><br>
+          <strong>应对IP依赖问题：</strong>对于需要隐私保护的场景，应使用手工包头特征（不含IP地址）配合浅层模型。LightGBM即使去掉IP特征，性能仍显著优于去IP后的Pcap-Encoder。
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 标题含义 -->
+    <div class="card">
+      <h2>4. 标题含义："糖的甜蜜危险"</h2>
+      <p>标题中的 <strong>"Sugar"（糖）</strong> 指的是此前文献中报告的 <strong>接近完美的分类准确率（95%~99%）</strong>——这些数字就像糖一样甜蜜诱人，让研究者陶醉其中，忽视了实验方法学中的根本缺陷。</p>
+      <p><strong>"Sweet Danger"（甜蜜的危险）</strong> 指的是：这些虚高的结果正在毒化整个研究方向——它们让后续研究者误以为"BERT预训练对加密流量有效"，从而沿着错误的技术路线投入资源。</p>
+      <p>作者的立场是：表征学习本身在方法论上是进步的（相比端到端有监督学习），但<strong>糟糕的应用方式</strong>导致了与有监督学习相同的陷阱。论文的目的不是否定表征学习，而是为领域建立正确的评估规范。</p>
+      <div class="solution" style="margin-top:14px;">
+        <div class="sol-tag">论文提出的解决方法</div>
+        <strong>方案：用严格的实验审计替代"甜蜜数字"的诱惑。</strong>论文的核心行动是"name and shame then fix"——先通过受控实验逐一揭露漏洞，然后提供可操作的方法论修复方案（四条黄金法则 + Pcap-Encoder作为正确设计的参考实现），同时开源全部审计代码。
+      </div>
+    </div>
+
+    <!-- 5. 四条黄金法则 -->
+    <div class="card">
+      <h2>5. 作者提出的评估规范（四条黄金法则）</h2>
+      <ol style="padding-left:20px; line-height:2;">
+        <li><strong>控制捷径学习：</strong>验证模型没有走捷径（通过特征随机化、消融实验等手段）。</li>
+        <li><strong>验证数据完整性：</strong>必须使用 <strong>per-flow split</strong>（按五元组划分）。</li>
+        <li><strong>压力测试表征学习能力：</strong>在下游训练中<strong>冻结编码器</strong>（frozen encoder），同时报告5-NN纯度等零监督嵌入质量指标。</li>
+        <li><strong>考虑成本-收益权衡：</strong>始终与浅层基线（Random Forest, XGBoost, LightGBM + 手工特征）比较——如果深度模型的复杂度不能带来性能增益，就不值得部署。</li>
+      </ol>
+    </div>
+
+    <!-- Summary -->
+    <div class="card summary-card summary-red">
+      <h2 style="border-bottom-color:#e67e22;">总结：问题与方法论遗产</h2>
+      <p style="font-weight:600; color:#7d6608;">
+        这篇SIGCOMM 2025论文用严格的实验证明了：此前所有声称在加密流量分类上取得>95%准确率的表征学习模型，其"成功"几乎100%来自数据泄露（per-packet split中的隐式流ID捷径）和端到端有监督重训练。当用正确的per-flow split + frozen encoder评估时，所有模型的表现均崩溃至30%以下。加密载荷中没有可学习的字节模式，有用的信息都在协议头部。简单浅层模型 + 手工特征在各方面都优于复杂的深度模型。
+      </p>
+    </div>
+
+    <!-- Paper info -->
+    <div class="card">
+      <h2>论文信息</h2>
+      <table style="text-align:left;">
+        <tr><td style="width:100px; font-weight:600;">发表会议</td><td>ACM SIGCOMM 2025（CCF-A, CORE A*）</td></tr>
+        <tr><td style="font-weight:600;">作者机构</td><td>Politecnico di Torino（意大利都灵理工大学）</td></tr>
+        <tr><td style="font-weight:600;">代码开源</td><td><a href="https://github.com/SmartData-Polito/Debunk_Traffic_Representation" target="_blank">github.com/SmartData-Polito/Debunk_Traffic_Representation</a></td></tr>
+        <tr><td style="font-weight:600;">批判对象</td><td>ET-BERT, YaTC, NetMamba, TrafficFormer, netFound, PTU, PacRep, PERT</td></tr>
+      </table>
+    </div>
+
+  </div><!-- /#sugar -->
+
+  <!-- ================================================================== -->
+  <!-- PAPER 2: SoK                                                        -->
+  <!-- ================================================================== -->
+  <div id="sok" class="paper-pane">
+
+    <!-- HERO -->
+    <div class="hero sok-hero">
+      <div class="tag tag-blue">IEEE S&P 2025 · SoK Paper</div>
+      <h1>SoK: Decoding the Enigma of Encrypted Network Traffic Classifiers</h1>
+      <div class="subtitle">解密加密网络流量分类器的谜题：系统化知识、揭露缺陷、建立规范</div>
+      <div class="meta">
+        <span>Nimesha Wickramasinghe, Arash Shaghaghi, Sanjay Jha (UNSW Sydney)</span>
+        <span>Gene Tsudik (UC Irvine)</span>
+      </div>
+    </div>
+
+    <!-- One-liner -->
+    <div class="one-liner one-liner-blue">
+      这篇IEEE S&P 2025 SoK论文对18项基于原始信息的加密流量分类研究（2015-2024）进行了系统化审计。通过348个特征遮蔽实验，作者证明：(1) 广泛使用的公开数据集70%-99%的流量实际上<strong>未加密</strong>；(2) SOTA分类器的高准确率主要来自三类过拟合捷径（数据泄露、上下文过拟合、时序过拟合）；(3) 加密载荷中<strong>没有可学习的字节模式</strong>，所有信息都在协议头部和载荷长度中。论文同时提出CipherSpectrum数据集和12条可操作的评估指南。
+    </div>
+
+    <!-- 1. 研究动机 -->
+    <div class="card">
+      <h2>1. 研究动机：三大系统性挑战</h2>
+      <div class="grid-3" style="margin-top:12px;">
+        <div class="stat-box"><div class="num red">Snag 1</div><div class="label">依赖过时数据集<br>（收集于2018年前）</div></div>
+        <div class="stat-box"><div class="num red">Snag 2</div><div class="label">设计选择疏忽<br>（三类过拟合）</div></div>
+        <div class="stat-box"><div class="num red">Snag 3</div><div class="label">未经证实的假设<br>（相互矛盾的声称）</div></div>
+      </div>
+      <p style="margin-top:14px;">论文聚焦<strong>基于原始信息的NTC</strong>——直接从数据包头部和载荷中提取信息进行分类的模型，系统化调研了18篇代表性研究（2015-2024），覆盖CNN、LSTM、CapsuleNet、Transformer等多种架构。</p>
+      <div class="finding">
+        <strong>核心问题：</strong>此前文献中95-99%的分类准确率究竟来自对加密流量模式的真正理解，还是来自实验设计中的方法学缺陷？
+      </div>
+      <div class="solution">
+        <div class="sol-tag">论文提出的解决方法</div>
+        <strong>方法论：构建形式化分类体系 + 348个系统性特征遮蔽实验。</strong>论文首先建立了一个形式化的NTC设计选择分类体系（流量粒度 × 数据提取策略 × 原始特征 × SII使用），然后基于该体系设计了11种特征遮蔽策略（A1, D1, D2, C, T, CTD, H1, P1, E1, E2, E3），对ET-BERT和YaTC两个SOTA模型进行348个受控实验，以系统性地"打开黑箱"——精确量化每类特征对分类性能的贡献。同时基于RFC（互联网协议标准文档）分析每类特征是否具有分类学上的合理性。
+      </div>
+    </div>
+
+    <!-- 2. Taxonomy -->
+    <div class="card">
+      <h2>2. 核心贡献：NTC设计选择分类体系</h2>
+      <p>论文将18项研究的设计决策归纳为四个维度的形式化组合：</p>
+      <div class="framework" style="margin-top:12px;">
+        <div class="level">
+          <span class="label-text">流量粒度</span>
+          <div class="node">Packet</div><div class="node">Burst</div><div class="node">Flow</div><div class="node">Session</div>
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="level">
+          <span class="label-text">数据提取策略</span>
+          <div class="node">Type 1<br><small>前m字节</small></div>
+          <div class="node">Type 2<br><small>n个包的前m字节</small></div>
+          <div class="node">Type 3<br><small>n个包各取前m字节</small></div>
+          <div class="node sel">包选择<br><small>前n个 / 任意连续n个</small></div>
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="level">
+          <span class="label-text">原始特征</span>
+          <div class="node">L2 MAC</div><div class="node">L3 IP</div><div class="node">L4 Port</div><div class="node">L7 Payload</div>
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="level">
+          <span class="label-text">SII使用</span>
+          <div class="node sel">使用SII</div><div class="node">不使用SII</div>
+        </div>
+      </div>
+
+      <div class="issue-solution-pair" style="margin-top:16px;">
+        <div class="issue">
+          <strong>问题：</strong>在18项被调查研究中，<strong>没有一项</strong>对会话特定的上下文/时序特征（IP ID、TCP SeqNo/AckNo、TCP Timestamps、TCP Window Size）做过遮蔽或混淆处理。许多研究在特征选择时未参考RFC规范，不清楚哪些特征是"对分类有意义的"、哪些是"会话随机初始化产生的伪影"。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：以RFC为依据的特征"可分类性"审计。</strong>论文为每一类网络特征提供了RFC级别的分析——MAC地址 → 应遮蔽（设备标识）；IP ID → 每会话伪随机初始化（RFC 791, RFC 6864）；IP Checksum → 随IP ID变化（RFC 791）；TCP Seq/Ack → 伪随机 + 递增（RFC 9293）；TCP Window → 受拥塞影响（RFC 7323）；TCP Timestamps → 时间敏感（RFC 1323）。论文将18项研究按分类体系四个维度归类（Table 1），形成"设计选择缺陷地图"。
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Snag 1: Legacy Datasets -->
+    <div class="card">
+      <h2>3. Snag 1：过时数据集 — 多数"加密流量"数据集其实未加密</h2>
+      <table>
+        <tr><th>数据集</th><th>未加密比例</th><th>加密比例</th><th>主要加密算法</th><th>含TLS 1.3?</th></tr>
+        <tr><td>ISCXVPN2016</td><td style="color:#e74c3c; font-weight:700;">98.9%</td><td>1.1%</td><td>AES-CBC, 3DES, RC4</td><td style="color:#e74c3c;">否</td></tr>
+        <tr><td>ISCXTor2016</td><td style="color:#e74c3c; font-weight:700;">89.3%</td><td>10.7%</td><td>AES-CBC, 3DES</td><td style="color:#e74c3c;">否</td></tr>
+        <tr><td>USTC-TFC2016</td><td style="color:#e74c3c; font-weight:700;">94.7%</td><td>5.3%</td><td>AES-CBC, 3DES, RC4</td><td style="color:#e74c3c;">否</td></tr>
+        <tr><td>Cross-Platform App</td><td style="color:#e74c3c; font-weight:700;">69.7%</td><td>30.3%</td><td>AES-CBC, AES-GCM</td><td style="color:#e74c3c;">否</td></tr>
+        <tr><td>CSTNET-TLS1.3</td><td style="color:#27ae60; font-weight:700;">0%</td><td style="color:#27ae60; font-weight:700;">100%</td><td>AES-GCM</td><td style="color:#27ae60;">是</td></tr>
+      </table>
+
+      <div class="takeaway"><strong>核心矛盾：</strong>ISCXVPN2016的98.9%流量是<strong>明文</strong>。但截至2024年10月，真实互联网中>93%的网页已加密。用这些数据集训练"加密流量分类器"，模型学到的明文模式在真实加密场景中完全不存在。</div>
+
+      <div class="issue-solution-pair" style="margin-top:14px;">
+        <div class="issue">
+          <strong>问题：</strong>数据集中大量使用了已被TLS 1.3弃用的加密算法——AES-CBC模式、3DES、RC4。这些算法产生可辨识的密文模式（如CBC模式的固定块结构），但在TLS 1.3的AEAD密码中每次使用唯一IV，同一明文产生完全不同的密文。ChaCha20-Poly1305——TLS 1.3推荐算法——在所有数据集中几乎完全缺失。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：CipherSpectrum数据集 + 强制性数据集加密审计。</strong>创建首个均匀覆盖TLS 1.3三种密码套件（AES-128/256-GCM + ChaCha20-Poly1305）的现代数据集（120K会话, 40类）。论文同时提供了基于Tshark的自动化审计脚本，呼吁在使用任何数据集前先审计其加密协议分布。
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Snag 2 -->
+    <div class="card">
+      <h2>4. Snag 2：设计选择疏忽 → 三类过拟合</h2>
+
+      <h3>过拟合类型 1：数据泄露过拟合（SII + SNI）</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          MAC地址、IP地址、端口号直接标识设备/用户/应用。许多研究不加遮蔽地使用SII。施加D1遮蔽（随机化SII）后，ET-BERT准确率从 <strong>0.96 → 0.51</strong>（↓0.45），YaTC从 <strong>0.90 → 0.62</strong>（↓0.28）。SII平均贡献约0.36的准确率增量。此外，m > 700字节或n ≥ 4的提取策略会捕获TLS ClientHello中的SNI字段——即域名标注本身。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：在数据预处理中强制遮蔽SII特征（Guideline 1, 2）。</strong>随机化或置零MAC地址、IP地址、端口号。当数据提取策略可能捕获TLS握手信息时，将SNI所在字节范围替换为随机值。
+        </div>
+      </div>
+
+      <h3>过拟合类型 2：上下文过拟合</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          当Packet/Burst粒度或"任意连续n个包"策略将<strong>同一TCP会话拆分为多个训练/测试样本</strong>时，会话特定字段（IP ID、IP Checksum、TCP Seq/Ack）的高位在会话内保持一致，形成跨样本相关性。施加C遮蔽后：ET-BERT 0.63→0.57（↓0.06），YaTC 0.60→0.55（↓0.05）。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：优先使用Flow/Session粒度 + First n packets策略（Guideline 3, 5），</strong>确保每个会话只产生一个样本。如果架构必须使用Packet/Burst粒度，则随机化所有会话特定字段。
+        </div>
+      </div>
+
+      <h3>过拟合类型 3：时序过拟合</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          TCP Timestamps（TSval/TSecr, RFC 1323）和TCP Window Size（RFC 7323）受网络RTT、拥塞、缓冲区等时间/环境因素影响。模型如果依赖这些特征，学到的是特定网络条件下的临时模式。施加T遮蔽后：ET-BERT 0.63→0.57（↓0.06），YaTC 0.60→0.56（↓0.04）。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：排除或随机化时间敏感字段（Guideline 4）。</strong>在预处理中移除TCP Timestamp选项或替换为随机值，TCP Window Size排除或归一化。同时建议进行时间泛化性测试。
+        </div>
+      </div>
+
+      <!-- Combined -->
+      <h3>叠加效应</h3>
+      <div class="finding">
+        <strong>最震撼结果：</strong>在原始发表配置下，ET-BERT和YaTC平均准确率分别为<strong>0.91和0.93</strong>。当同时随机化所有三类过拟合特征（CTD遮蔽）后，ET-BERT降至<strong>0.59（↓0.32）</strong>，YaTC降至<strong>0.68（↓0.25）</strong>。约<strong>1/3到1/2的性能来自捷径而非对流量特征的真实理解。</strong>
+      </div>
+      <div class="solution">
+        <div class="sol-tag">论文提出的解决方法</div>
+        <strong>方案：CTD遮蔽作为所有NTC模型的强制评估配置。</strong>模型在A1（全数据）和CTD（无捷径）上的性能差距直接反映了过拟合的严重程度——差距越大，模型越不可靠。
+      </div>
+    </div>
+
+    <!-- 5. Snag 3 -->
+    <div class="card">
+      <h2>5. Snag 3：未经证实的假设 — 加密载荷的谜题</h2>
+
+      <h3>假设 1："加密载荷中存在可学习的模式"</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          多篇论文声称"由于加密算法的不完美随机性，加密载荷中存在可被ML学习的模式"。但TLS 1.3的AEAD密码每次使用唯一IV，同一明文永远产生不同密文。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：E1/E2/E3遮蔽实验分离"载荷内容"与"载荷长度"的贡献。</strong><br>
+          E1（仅加密载荷）：ET-BERT <strong>0.12</strong>（≈随机0.10），YaTC <strong>0.30</strong><br>
+          E2（载荷→0xFF, 仅留长度）：ET-BERT <strong>0.12</strong>，YaTC升至<strong>0.39</strong>（↑0.09）<br>
+          E3（载荷→随机值）：ET-BERT <strong>0.12</strong>，YaTC <strong>0.30</strong><br>
+          <strong>结论：密文中没有可学习的模式。</strong>YaTC E2>E1 说明其利用的是<strong>载荷长度</strong>而非载荷内容——与RFC 8446完全一致："TLS does not hide the length."
+        </div>
+      </div>
+
+      <h3>假设 2："加密载荷单独足够进行分类"</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          [33][89]等论文声称仅凭加密载荷就能实现准确分类。但E1实验显示加密载荷单独提供的分类信息极少。H1实验（仅头部信息）显示：ET-BERT匹配D1基线（0.63=0.63），YaTC仅小幅下降（0.57 vs 0.60）。<strong>头部信息在分类中占据绝对主导地位。</strong>
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：同时报告H1（仅头部）和E1（仅载荷）准确率（Guideline 9, 10, 11）。</strong>如果H1 >> E1，模型性能完全来自协议头部；如果E1 > H1，模型才真正从加密载荷中学到了东西（目前没有模型做到）。论文建议将"载荷声称"从默认假设改为<strong>需要实验验证的假说</strong>。
+        </div>
+      </div>
+
+      <h3>假设 3："对载荷的截断/填充不影响分类性能"</h3>
+      <div class="issue-solution-pair">
+        <div class="issue">
+          所有18项研究都需要固定长度输入，因此都对载荷进行了截断或填充。但既然载荷长度是加密载荷中唯一可观察的特征，截断/填充必然改变这一特征。
+        </div>
+        <div class="solution">
+          <div class="sol-tag">论文提出的解决方法</div>
+          <strong>方案：系统性量化截断/填充的影响（Guideline 12）。</strong>截断25%：YaTC 0.39→0.35（↓0.04）；截断50%：YaTC 0.39→0.31（↓0.08）。ET-BERT不受影响（进一步证实其完全依赖头部）。论文建议除非有明确的领域理由，不要随意截断或填充载荷数据。
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Complementary -->
+    <div class="card">
+      <h2>6. 与 Sweet Danger of Sugar 的互补定位</h2>
+      <table>
+        <tr><th>维度</th><th>Sweet Danger of Sugar (SIGCOMM)</th><th>SoK (IEEE S&P)</th></tr>
+        <tr><td><strong>批判焦点</strong></td><td>预训练/表征学习范式是否有效</td><td>设计选择缺陷 + 数据集有效性 + 领域假设</td></tr>
+        <tr><td><strong>核心方法</strong></td><td>Per-flow split + Frozen encoder + 随机初始化消融</td><td>形式化分类体系 + 348特征遮蔽实验 + RFC审计</td></tr>
+        <tr><td><strong>数据集贡献</strong></td><td>无新数据集</td><td>CipherSpectrum（120K会话, 3密码套件均匀分布）</td></tr>
+        <tr><td><strong>审计范围</strong></td><td>6个预训练模型</td><td>18项研究（2015-2024）</td></tr>
+        <tr><td><strong>评估框架</strong></td><td>4条黄金法则</td><td>12条可操作指南</td></tr>
+        <tr><td><strong>共同结论</strong></td><td colspan="2" style="color:#e74c3c; font-weight:700;">加密载荷中没有可学习的字节模式；高准确率来自捷径，非真实能力</td></tr>
+      </table>
+      <div class="finding" style="margin-top:12px;">
+        <strong>互补价值：</strong>Sugar从预训练评估方法学切入（per-flow split + frozen encoder），SoK从设计选择缺陷切入（SII/上下文/时序过拟合 + 数据集加密审计）。SoK填补了Sugar未覆盖的数据集层面问题（多数"加密"数据集不含加密流量）以及SNI泄露、载荷长度vs载荷内容等细粒度问题。
+      </div>
+    </div>
+
+    <!-- 7. 12 Guidelines -->
+    <div class="card">
+      <h2>7. 方法论遗产：12条可操作的NTC评估指南</h2>
+
+      <div style="margin-bottom:12px; font-weight:600; color:var(--accent2);">数据泄露防护</div>
+      <div class="guideline"><div class="g-num">1</div><div class="g-text"><strong>避免使用SII特征</strong>（MAC、IP、端口）——它们贡献~0.36的虚假准确率增量，在真实部署中经常不可用。</div></div>
+      <div class="guideline"><div class="g-num">2</div><div class="g-text"><strong>遮蔽会话初始段的SNI</strong>——m>700字节或n≥4个包时SNI可能被无意捕获，使分类退化为明文域名识别。</div></div>
+
+      <div style="margin:14px 0 8px; font-weight:600; color:var(--accent2);">上下文与时序过拟合防护</div>
+      <div class="guideline"><div class="g-num">3</div><div class="g-text"><strong>避免使用无信息的会话特定字段</strong>——IP ID、Checksum、TCP Seq/Ack是会话伪随机初始化的产物。</div></div>
+      <div class="guideline"><div class="g-num">4</div><div class="g-text"><strong>排除或随机化时间敏感字段</strong>——TCP Timestamps受RTT影响、TCP Window Size受拥塞影响。</div></div>
+      <div class="guideline"><div class="g-num">5</div><div class="g-text"><strong>确保同一会话的样本不跨越训练/测试集</strong>——优先使用Session粒度 + First n packets。</div></div>
+
+      <div style="margin:14px 0 8px; font-weight:600; color:var(--accent2);">加密载荷的正确使用</div>
+      <div class="guideline"><div class="g-num">6</div><div class="g-text"><strong>关注载荷长度而非内容</strong>——TLS 1.3保证可观察的只有载荷长度（RFC 8446）。</div></div>
+      <div class="guideline"><div class="g-num">7</div><div class="g-text"><strong>使用结构化表示捕捉载荷长度变化</strong>——当包边界对模型有意义时，保留包级结构是关键。</div></div>
+      <div class="guideline"><div class="g-num">8</div><div class="g-text"><strong>谨慎解读"从加密数据中观察到的模式"</strong>——它们很可能来自未加密流量或已弃用的密码算法。</div></div>
+
+      <div style="margin:14px 0 8px; font-weight:600; color:var(--accent2);">头部与载荷的配合</div>
+      <div class="guideline"><div class="g-num">9</div><div class="g-text"><strong>不要单独依赖加密载荷进行分类</strong>——在所有实验中E1（仅载荷）准确率接近随机水平。</div></div>
+      <div class="guideline"><div class="g-num">10</div><div class="g-text"><strong>警惕"载荷足够用于分类"的声称</strong>——可能源于过时或未加密数据集中的伪影。</div></div>
+      <div class="guideline"><div class="g-num">11</div><div class="g-text"><strong>同时利用头部和载荷长度信息</strong>——头部元数据 + 载荷长度模式是最强的、经实验验证的信息组合。</div></div>
+      <div class="guideline"><div class="g-num">12</div><div class="g-text"><strong>避免随意截断或填充载荷</strong>——载荷长度是加密载荷中唯一可观察的特征，截断50%可导致↓0.08的准确率损失。</div></div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card summary-card summary-blue">
+      <h2 style="border-bottom-color:#2980b9;">总结：方法论遗产</h2>
+      <p style="font-weight:600; color:#1a5276;">
+        这篇IEEE S&P 2025 SoK论文揭露了三个根本缺陷：(1) 70-99%的"加密流量"公开数据集实际上不含加密流量；(2) 数据泄露（SII）+ 上下文过拟合 + 时序过拟合共同贡献了性能声称的1/3到1/2；(3) 加密载荷中唯一可学习的是载荷长度而非载荷内容。
+      </p>
+      <p style="color:#1a5276; margin-top:10px;"><strong>方法论遗产：</strong>CipherSpectrum数据集（120K会话, 3密码套件） + 设计选择分类体系 + 11种特征遮蔽评估协议 + RFC级特征可分类性审计 + 12条可操作指南 + 全开源。</p>
+    </div>
+
+    <!-- Paper info -->
+    <div class="card">
+      <h2>论文信息</h2>
+      <table style="text-align:left;">
+        <tr><td style="width:100px; font-weight:600;">发表会议</td><td>IEEE Symposium on Security and Privacy (S&P) 2025（CCF-A, CORE A*）</td></tr>
+        <tr><td style="font-weight:600;">作者机构</td><td>UNSW Sydney & UC Irvine</td></tr>
+        <tr><td style="font-weight:600;">论文类型</td><td>Systematization of Knowledge (SoK)</td></tr>
+        <tr><td style="font-weight:600;">代码开源</td><td><a href="https://github.com/nime-sha256/ntc-enigma" target="_blank">github.com/nime-sha256/ntc-enigma</a></td></tr>
+        <tr><td style="font-weight:600;">数据集</td><td><a href="https://cspectrum.web.cse.unsw.edu.au" target="_blank">cspectrum.web.cse.unsw.edu.au</a></td></tr>
+        <tr><td style="font-weight:600;">调查范围</td><td>18项NTC研究（2015-2024）；实验探针：ET-BERT + YaTC</td></tr>
+      </table>
+    </div>
+
+  </div><!-- /#sok -->
+
+</main>
+
+<!-- Back to top -->
+<button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
+<script>
+  // Paper switching
+  function showPaper(id) {
+    // Hide all panes
+    document.querySelectorAll('.paper-pane').forEach(p => p.classList.remove('active'));
+    // Show selected
+    const pane = document.getElementById(id);
+    if (pane) pane.classList.add('active');
+    // Update sidebar active
+    document.querySelectorAll('.paper-link').forEach(l => l.classList.remove('active'));
+    const link = document.querySelector(`.paper-link[href="#${id}"]`);
+    if (link) link.classList.add('active');
+    // Scroll to top
+    window.scrollTo({top:0,behavior:'smooth'});
+    // Close mobile sidebar
+    document.querySelector('.sidebar').classList.remove('open');
+    // Update URL hash
+    if (history.pushState) {
+      history.pushState(null, null, '#' + id);
+    }
+  }
+
+  // Handle initial hash
+  (function() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && document.getElementById(hash)) {
+      showPaper(hash);
+    }
+  })();
+
+  // Handle browser back/forward
+  window.addEventListener('hashchange', function() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && document.getElementById(hash)) {
+      showPaper(hash);
+    } else {
+      document.querySelectorAll('.paper-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('welcome').classList.add('active');
+      document.querySelectorAll('.paper-link').forEach(l => l.classList.remove('active'));
+    }
+  });
+
+  // Show/hide back-to-top button
+  window.addEventListener('scroll', function() {
+    const btn = document.querySelector('.back-top');
+    btn.style.display = window.scrollY > 400 ? 'block' : 'none';
+  });
+
+  // Close sidebar when clicking outside on mobile
+  document.addEventListener('click', function(e) {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.querySelector('.sidebar-toggle');
+    if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+      if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+        sidebar.classList.remove('open');
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
