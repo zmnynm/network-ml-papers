@@ -391,6 +391,89 @@
     .card { padding: 16px 14px; }
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
     .back-top { bottom: 16px; right: 16px; }
+    .chat-panel { display: none; }
+  }
+
+  /* ====== CHAT WIDGET ====== */
+  .chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+  .chat-toggle {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #1a1a2e; color: #fff; border: none;
+    font-size: 22px; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .chat-toggle:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+  .chat-toggle .badge {
+    position: absolute; top: -2px; right: -2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #e74c3c; color: #fff;
+    font-size: 10px; font-weight: 700;
+    display: none; align-items: center; justify-content: center;
+  }
+  .chat-panel {
+    position: fixed; bottom: 84px; right: 20px;
+    width: 400px; max-height: 580px;
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    display: flex; flex-direction: column;
+    z-index: 1001; overflow: hidden;
+  }
+  .chat-header {
+    background: #1a1a2e; color: #fff;
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-weight: 700; font-size: 15px;
+  }
+  .chat-header .status { font-size: 11px; opacity: 0.7; font-weight: 400; }
+  .chat-header .status.online { color: #2ecc71; opacity: 1; }
+  .chat-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 4px; }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 400px;
+  }
+  .chat-msg {
+    max-width: 85%; padding: 10px 14px;
+    border-radius: 12px; font-size: 13px; line-height: 1.6;
+    word-wrap: break-word;
+  }
+  .chat-msg.user {
+    align-self: flex-end;
+    background: #2980b9; color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-msg.assistant {
+    align-self: flex-start;
+    background: #f0f4f8; color: #2c3e50;
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg.assistant pre { background: #e8ecf0; padding: 8px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+  .chat-msg.assistant code { background: #e8ecf0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .chat-msg.thinking { align-self: flex-start; color: #888; font-style: italic; font-size: 12px; padding: 8px 14px; }
+  .chat-input-wrap {
+    display: flex; border-top: 1px solid #e0e0e0;
+    padding: 10px 12px; gap: 8px;
+  }
+  .chat-input {
+    flex: 1; border: 1px solid #ddd; border-radius: 20px;
+    padding: 10px 14px; font-size: 13px; outline: none;
+    font-family: inherit; resize: none;
+  }
+  .chat-input:focus { border-color: #2980b9; }
+  .chat-send {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #2980b9; color: #fff; border: none;
+    font-size: 16px; cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .chat-send:hover { background: #1a6daa; }
+  .chat-send:disabled { background: #bbb; cursor: not-allowed; }
+  @media (max-width: 768px) {
+    .chat-panel { width: calc(100vw - 32px); right: 16px; bottom: 80px; }
   }
 </style>
 </head>
@@ -939,6 +1022,37 @@
 
 </main>
 
+<!-- ====== CHAT WIDGET ====== -->
+<div class="chat-widget" id="chatWidget">
+  <button class="chat-toggle" id="chatToggle" onclick="toggleChat()" title="Claude Code 对话">
+    💬
+    <span class="badge" id="chatBadge">1</span>
+  </button>
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <span>Claude Code 对话</span>
+      <span class="status online" id="chatStatus">● 在线</span>
+      <button class="chat-close" onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg assistant">
+        你好！我是 Claude Code，正在通过本地桥接服务器与你对话。<br><br>
+        你可以让我：<br>
+        • 解释当前论文中的概念<br>
+        • 修改 HTML 内容或样式<br>
+        • 搜索补充资料<br>
+        • 任何你现在终端里能做的事
+      </div>
+    </div>
+    <div class="chat-input-wrap">
+      <input type="text" class="chat-input" id="chatInput"
+             placeholder="输入消息，Enter 发送..."
+             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}">
+      <button class="chat-send" id="chatSend" onclick="sendChat()">↑</button>
+    </div>
+  </div>
+</div>
+
 <!-- Back to top -->
 <button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
 
@@ -1000,6 +1114,124 @@
       }
     }
   });
+
+  // ============================================================
+  // CHAT WIDGET — SSE bridge to terminal Claude Code
+  // ============================================================
+  const CHAT_HOST = window.location.hostname === 'localhost'
+    ? '' : 'http://localhost:3456';
+
+  let chatOpen = false;
+  let thinkingMsg = null;
+  let currentPaper = '';
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chatPanel').style.display = chatOpen ? 'flex' : 'none';
+    document.getElementById('chatBadge').style.display = 'none';
+    if (chatOpen) {
+      document.getElementById('chatInput').focus();
+      // Track which paper user is viewing
+      const active = document.querySelector('.paper-pane.active');
+      currentPaper = active ? active.id : 'welcome';
+    }
+  }
+
+  function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    // Show user message
+    appendMessage('user', msg);
+    input.value = '';
+    document.getElementById('chatSend').disabled = true;
+
+    // Show thinking indicator
+    thinkingMsg = appendMessage('thinking', 'Claude 思考中...');
+
+    // Send to bridge server
+    fetch(CHAT_HOST + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        paper: currentPaper,
+        context: 'user is reading the paper analysis dashboard'
+      })
+    }).then(r => r.json()).then(data => {
+      // SSE will deliver the response; start polling as fallback
+      if (data.id) pollResponse(data.id);
+    }).catch(err => {
+      if (thinkingMsg) thinkingMsg.remove();
+      appendMessage('assistant', '无法连接到本地桥接服务器。请确认 server.js 正在运行（node server.js），然后刷新页面。');
+      document.getElementById('chatSend').disabled = false;
+    });
+  }
+
+  function appendMessage(type, text) {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + type;
+    div.innerHTML = text.replace(/\n/g, '<br>');
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+  }
+
+  function pollResponse(id) {
+    const maxPolls = 120; // 2 minutes max
+    let count = 0;
+    const timer = setInterval(() => {
+      count++;
+      fetch(CHAT_HOST + '/response/' + id)
+        .then(r => r.json())
+        .then(resp => {
+          if (resp && resp.response) {
+            clearInterval(timer);
+            if (thinkingMsg) thinkingMsg.remove();
+            appendMessage('assistant', resp.response);
+            document.getElementById('chatSend').disabled = false;
+            document.getElementById('chatInput').focus();
+          }
+        }).catch(() => {});
+      if (count >= maxPolls) {
+        clearInterval(timer);
+        if (thinkingMsg) thinkingMsg.remove();
+        appendMessage('assistant', '请求超时。Claude Code 终端可能正在忙碌，请稍后重试。');
+        document.getElementById('chatSend').disabled = false;
+      }
+    }, 1000);
+  }
+
+  // SSE connection
+  (function initSSE() {
+    if (CHAT_HOST === '') {
+      // Served from localhost — SSE available
+      const es = new EventSource('/events');
+      es.onmessage = function(e) {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'response' && data.response) {
+            if (thinkingMsg) thinkingMsg.remove();
+            appendMessage('assistant', data.response);
+            document.getElementById('chatSend').disabled = false;
+            document.getElementById('chatInput').focus();
+            // Show badge if panel closed
+            if (!chatOpen) {
+              document.getElementById('chatBadge').style.display = 'flex';
+            }
+          } else if (data.type === 'thinking') {
+            // Already handled by sendChat
+          }
+        } catch(_) {}
+      };
+      es.onerror = function() {
+        document.getElementById('chatStatus').textContent = '○ 离线';
+        document.getElementById('chatStatus').classList.remove('online');
+      };
+    }
+  })();
 </script>
 
 </body>
