@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owen MC Approximation (2023) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#e67e22;">Theory + Algorithm</span>
+  <h1>Approximation of Group Explainers with Coalition Structure using Monte Carlo</h1>
+  <div class="subtitle">首次针对 Owen 值提出带严格误差界的蒙特卡洛采样算法，为不可解析计算场景提供质量可保证的近似层次化特征归因</div>
+  <div class="meta">
+    <span>📅 2023 年</span>
+    <span>🏷️ Owen 值 / 蒙特卡洛采样 / 误差界</span>
+    <span>📎 Owen 值计算的理论基础</span>
+  </div>
+</div>
+
+<!-- 一、问题背景 -->
+<div class="card">
+  <h2>一、背景：Owen 值的计算困境</h2>
+
+  <h3>1.1 精确计算的不可行性</h3>
+  <p>Owen 值（Owen, 1977）作为 Shapley 值在带联盟结构博弈中的推广，其精确计算面临比 Shapley 值更为严峻的组合爆炸问题：</p>
+
+  <table>
+    <tr><th>计算维度</th><th>Shapley 值</th><th>Owen 值</th></tr>
+    <tr><td>组间排列空间</td><td>n!（所有特征的排列）</td><td>k!（k 个组的排列）</td></tr>
+    <tr><td>组内排列空间</td><td>无（无分组概念）</td><td>Πⱼ |Gⱼ|!（每组内部特征排列的乘积）</td></tr>
+    <tr><td>总联盟评估</td><td>2ⁿ 种特征子集</td><td>需评估跨组和组内组合的联盟</td></tr>
+    <tr><td>可精确计算的模型</td><td>树模型（TreeSHAP 闭式解）</td><td>CatBoost 树模型（闭式解，见 Owen Tree 2024）</td></tr>
+    <tr><td>需近似的模型</td><td>神经网络（KernelSHAP 采样）</td><td>神经网络（MC Owen 采样）</td></tr>
+  </table>
+
+  <div class="finding">
+    <strong>核心矛盾：</strong>Owen 值的理论优势（层次化归因、T-property 一致性）在实践中被其高昂的计算代价所抵消。对于神经网络等无法解析计算的模型类型，需要一种<strong>具有质量保证的近似方法</strong>——这正是本文的核心贡献。
+  </div>
+
+  <h3>1.2 为什么不能简单复用 Shapley 采样方法</h3>
+  <p>已有的 Shapley 值蒙特卡洛采样方法（如 Castro et al., 2009 的采样近似及其误差界）不能直接扩展到 Owen 值，原因有三：</p>
+  <ul>
+    <li><strong>双层采样结构：</strong>Shapley 采样只需对一种排列（特征排列）采样，而 Owen 值需要对组排列和组内排列两层同时采样，两层采样的相关性分析更为复杂</li>
+    <li><strong>方差分解差异：</strong>Owen 值的边际贡献方差来源涉及组间和组内两个层面，需要新的方差分析框架</li>
+    <li><strong>联盟结构约束：</strong>组结构引入的约束（组内特征不能分散到不同组）改变了"有效联盟"的定义，采样分布需要重新设计</li>
+  </ul>
+</div>
+
+<!-- 二、MC Owen 采样算法设计 -->
+<div class="card">
+  <h2>二、MC Owen 采样算法：核心设计</h2>
+
+  <h3>2.1 算法框架</h3>
+  <p>MC Owen 采样算法的核心思想是：通过从组排列空间和组内排列空间中<strong>双重随机采样</strong>，构建 Owen 值的无偏估计量。</p>
+
+  <div class="flow">
+    <div class="step">步骤 1<br>定义联盟结构<br>P = {G₁, G₂, ..., Gₖ}</div>
+    <div class="arrow">→</div>
+    <div class="step">步骤 2<br>随机采样组排列<br>π ~ Uniform(Σₖ)</div>
+    <div class="arrow">→</div>
+    <div class="step">步骤 3<br>每个组内随机采样<br>特征排列 σⱼ ~ Uniform(Σ_{|Gⱼ|})</div>
+    <div class="arrow">→</div>
+    <div class="step">步骤 4<br>计算边际贡献<br>Δᵢ = v(S∪{i}) − v(S)</div>
+    <div class="arrow">→</div>
+    <div class="step">步骤 5<br>M 次采样后取平均<br>Ôwᵢ = (1/M) Σₘ Δᵢ⁽ᵐ⁾</div>
+  </div>
+
+  <h3>2.2 形式化算法描述</h3>
+  <p>对于特征 i ∈ Gⱼ（第 j 个组），每次采样执行以下操作：</p>
+
+  <pre>
+算法：MC Owen 值估计（单次采样）
+
+输入：模型 f，输入样本 x，联盟结构 P = {G₁, ..., Gₖ}
+输出：一次边际贡献采样 Δᵢ
+
+1.  从 k 个组中随机采样组排列：π ~ Uniform(所有 k! 种组排列)
+2.  对于特征 i 所在的组 Gⱼ：
+    从 Gⱼ 中随机采样内部排列：σ ~ Uniform(所有 |Gⱼ|! 种排列)
+3.  定义前驱组集合 Q = {π(1), π(2), ..., π(j−1)}
+    即排在 Gⱼ 前面的所有组
+4.  定义组内前驱特征 T = {σ(1), σ(2), ..., σ(pos(i)−1)}
+    即在 Gⱼ 组内排在特征 i 前面的特征
+5.  构建基准联盟：S = (∪_{g∈Q} Gg) ∪ T
+6.  计算边际贡献：Δᵢ = f(S ∪ {i}) − f(S)
+    （用背景/基线值填充 S 中未包含的特征）
+7.  返回 Δᵢ
+  </pre>
+
+  <p>经过 M 次独立的上述采样过程后，Owen 值的估计为：</p>
+  <pre>Ôwᵢ = (1/M) · Σ_{m=1}^{M} Δᵢ⁽ᵐ⁾</pre>
+
+  <h3>2.3 与 Shapley 采样的关键差异</h3>
+  <table>
+    <tr><th>设计维度</th><th>Shapley MC 采样</th><th>Owen MC 采样</th></tr>
+    <tr><td>采样空间</td><td>n 个特征的排列（n!）</td><td>组排列（k!）× 组内排列（|Gⱼ|!）的乘积空间</td></tr>
+    <tr><td>前驱定义</td><td>排列中排在 i 前面的所有特征</td><td>排在 Gⱼ 前的所有组 ∪ Gⱼ 内排在 i 前的特征</td></tr>
+    <tr><td>组内/组间分离</td><td>不适用</td><td>严格保持：组内特征不跨越组边界</td></tr>
+    <tr><td>误差界结构</td><td>仅依赖特征数 n 和样本数 M</td><td>依赖组数 k、组大小 |Gⱼ| 和样本数 M</td></tr>
+  </table>
+</div>
+
+<!-- 三、误差界理论 -->
+<div class="card">
+  <h2>三、误差界理论：质量保证的数学基础</h2>
+
+  <h3>3.1 为什么误差界至关重要</h3>
+  <p>在可解释性领域，一个没有误差界的近似值是<strong>不可信赖的</strong>。如果用户不知道"Owen 值 = 0.35 ± 0.05"还是"Owen 值 = 0.35 ± 0.50"，解释就失去了实际意义。本文首次为 Owen 值的 MC 近似提供了严格的概率误差界。</p>
+
+  <h3>3.2 误差界形式</h3>
+  <p>本文证明的核心结论：对于 Owen 值的 MC 估计量 Ôwᵢ，以概率至少 1−δ 成立：</p>
+
+  <pre>
+|Ôwᵢ − Owᵢ| ≤ ε(M, k, |Gⱼ|, σ², δ)
+
+其中：
+  M    = 采样次数（可控制的参数）
+  k    = 组数量
+  |Gⱼ| = 特征 i 所在组的大小
+  σ²   = 边际贡献的方差（反映模型的"不稳定性"）
+  δ    = 置信参数（如 δ = 0.05 对应 95% 置信度）
+  </pre>
+
+  <div class="highlight-box">
+    <strong>直观含义：</strong>给定所需的精度 ε 和置信度 1−δ，可以<strong>反向计算出所需的最小采样次数 M</strong>。这提供了实用的采样预算规划：采样多少次才能让近似误差控制在可接受范围内？
+  </div>
+
+  <h3>3.3 影响误差界的关键因素</h3>
+  <table>
+    <tr><th>因素</th><th>对误差界的影响</th><th>实践含义</th></tr>
+    <tr><td>采样次数 M ↑</td><td>误差 ↓ （与 √M 成反比，标准蒙特卡洛收敛率）</td><td>增加采样是最直接的精度提升手段</td></tr>
+    <tr><td>组数 k ↑</td><td>误差 ↑（更多组 → 更大排列空间 → 更难覆盖）</td><td>特征分组不宜过细</td></tr>
+    <tr><td>组大小 |Gⱼ| ↑</td><td>误差 ↑（更大组内排列空间）</td><td>组内特征不宜过多，合理分组有助于控制误差</td></tr>
+    <tr><td>边际贡献方差 σ² ↑</td><td>误差 ↑（模型越"不稳定"，估计越难）</td><td>对于高度非线性的模型，需要更多采样</td></tr>
+  </table>
+
+  <h3>3.4 误差界推导的技术路线</h3>
+  <p>本文的误差界推导基于以下关键步骤：</p>
+  <ol>
+    <li><strong>Hoeffding 不等式 / Bernstein 不等式：</strong>将 M 次独立同分布采样的平均值与其期望的偏差限定在概率界内</li>
+    <li><strong>双层方差分解：</strong>将 Owen 值估计量的总方差分解为组间抽样方差和组内抽样方差两部分，分别定界</li>
+    <li><strong>联盟结构的利用：</strong>利用组约束（组内特征不跨组）减少有效排列空间，获得比简单全排列更紧的界</li>
+  </ol>
+</div>
+
+<!-- 四、具体示例 -->
+<div class="card">
+  <h2>四、具体示例：MC Owen 采样的完整演练</h2>
+
+  <h3>4.1 设定</h3>
+  <p>考虑一个简化场景：4 个特征被分为 2 个组。</p>
+  <pre>
+特征空间：N = {f₁, f₂, f₃, f₄}
+联盟结构：P = {G₁={f₁, f₂}, G₂={f₃, f₄}}
+目标：估计 f₁ 的 Owen 值（f₁ ∈ G₁）
+模型：任意黑盒模型（如神经网络）
+  </pre>
+
+  <h3>4.2 单次采样过程</h3>
+
+  <div class="example-box">
+    <strong>采样 1：组顺序 (G₁, G₂)，G₁ 内顺序 (f₁, f₂)</strong>
+    <pre>
+组排列：π = (G₁, G₂)，G₁ 排在前面 → Q = ∅（没有排在 G₁ 前面的组）
+G₁ 内排列：σ = (f₁, f₂)，f₁ 排在前面 → T = ∅（f₁ 前面没有组内特征）
+基准联盟 S = (∪_{g∈Q} Gg) ∪ T = ∅ ∪ ∅ = ∅
+边际贡献 Δ₁⁽¹⁾ = v({f₁}) − v(∅)
+    </pre>
+  </div>
+
+  <div class="example-box">
+    <strong>采样 2：组顺序 (G₂, G₁)，G₁ 内顺序 (f₂, f₁)</strong>
+    <pre>
+组排列：π = (G₂, G₁)，G₂ 排在 G₁ 前面 → Q = {G₂} = {f₃, f₄}
+G₁ 内排列：σ = (f₂, f₁)，f₂ 排在 f₁ 前面 → T = {f₂}
+基准联盟 S = {f₃, f₄} ∪ {f₂} = {f₂, f₃, f₄}
+边际贡献 Δ₁⁽²⁾ = v({f₁, f₂, f₃, f₄}) − v({f₂, f₃, f₄})
+    </pre>
+  </div>
+
+  <div class="example-box">
+    <strong>采样 3：组顺序 (G₁, G₂)，G₁ 内顺序 (f₂, f₁)</strong>
+    <pre>
+组排列：π = (G₁, G₂) → Q = ∅
+G₁ 内排列：σ = (f₂, f₁) → T = {f₂}
+基准联盟 S = ∅ ∪ {f₂} = {f₂}
+边际贡献 Δ₁⁽³⁾ = v({f₁, f₂}) − v({f₂})
+    </pre>
+  </div>
+
+  <h3>4.3 汇聚与收敛</h3>
+  <pre>
+经过 M = 1000 次采样：
+Ôw₁ = (1/1000) × (Δ₁⁽¹⁾ + Δ₁⁽²⁾ + ... + Δ₁⁽¹⁰⁰⁰⁾)
+
+假设模型的实际边际贡献：
+  Δ = 0.3 (当从空集添加 f₁ 时) → 出现概率 ≈ P(组顺序 G₁ 第一且 f₁ 组内第一)
+  Δ = 0.1 (当从已有 f₂, f₃, f₄ 添加 f₁ 时) → 出现概率 ≈ P(组顺序 G₁ 最后且 f₁ 组内最后)
+  ... (各种中间情况)
+
+Ôw₁ ≈ 理论 Owen 值 ± 置信区间（由误差界定）
+  </pre>
+
+  <div class="finding">
+    <strong>关键观察：</strong>Owen 值的采样空间虽大（4! × 2! × 2! = 24 × 2 × 2 = 96 种可能），但 M=1000 次采样足以覆盖大多数情况。随着 M 的增加，估计值以 √M 的速率向真值收敛——这是蒙特卡洛方法的经典收敛行为。
+  </div>
+</div>
+
+<!-- 五、优缺点分析 -->
+<div class="card">
+  <h2>五、方法特性与适用场景分析</h2>
+
+  <h3>5.1 方法优势</h3>
+  <div class="grid-2">
+    <div class="finding">
+      <strong>1. 模型无关性：</strong>MC Owen 采样对模型类型无任何假设——只要可以调用 f(S) 获得预测值，即可计算。适用于神经网络、集成模型、任意黑盒。
+    </div>
+    <div class="finding">
+      <strong>2. 质量可保证：</strong>首个为 Owen 值提供严格误差界的方法。用户可以明确知道近似质量，而非盲目信任一个近似值。
+    </div>
+    <div class="finding">
+      <strong>3. 可扩展性：</strong>采样次数 M 是独立可调的超参数——M 越大近似越准，用户可根据计算预算灵活选择。
+    </div>
+    <div class="finding">
+      <strong>4. 理论完备性：</strong>从无偏性、收敛率、误差界三方面完整论证，数学基础坚实。
+    </div>
+  </div>
+
+  <h3>5.2 实际限制</h3>
+  <div class="critique-box">
+    <strong>限制 1 — 计算成本：</strong>与 flat Shapley 相比，Owen 值的双重要样结构导致单位采样的计算量更大（需要管理组间和组内两层前驱集合）。对于大规模特征空间（如高分辨率图像的逐像素解释），计算开销可能难以承受。
+  </div>
+  <div class="critique-box">
+    <strong>限制 2 — 联盟结构依赖：</strong>方法假设联盟结构 P 已预先给定。在实践中，如何合理划分联盟本身就是一个难题——错误的组划分会导致误导性的 Owen 值。但这不是 MC 采样本身的问题，而是 Owen 值框架的固有挑战。
+  </div>
+  <div class="critique-box">
+    <strong>限制 3 — 特征移除的实现：</strong>对神经网络而言，"移除"特征（即将 S 中未包含的特征替换为基线值）可能产生 out-of-distribution 的输入，导致 v(S) 的评估不可靠。这是所有基于联盟的特征归因方法的共性问题，MC Owen 并未超越这一限制。
+  </div>
+
+  <h3>5.3 与其他 Owen 方法的互补关系</h3>
+  <table>
+    <tr><th>方法</th><th>适用模型</th><th>精确性</th><th>计算代价</th><th>选择依据</th></tr>
+    <tr><td>Owen 闭式解 (Tree Models 2024)</td><td>CatBoost 树模型</td><td>精确（无近似误差）</td><td>低（闭式公式）</td><td>当模型恰好是 CatBoost 时优先使用</td></tr>
+    <tr><td>MC Owen 采样 (本文 2023)</td><td>任意黑盒模型</td><td>近似（可控误差界）</td><td>中高（M 次模型调用）</td><td>当模型为神经网络/黑盒时使用</td></tr>
+    <tr><td>O-Shap (2025 应用)</td><td>图像模型 + 语义分割</td><td>近似（基于 MC 采样）</td><td>高（采样 + 分割预处理）</td><td>当需要语义感知的层次化解释时使用</td></tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>实践建议：</strong>对于实际部署选择——
+    <ul>
+      <li>若使用 <strong>LightGBM/XGBoost/CatBoost</strong> 等树模型（如 Sweet Danger of Sugar 论文中推荐的浅层 baseline），优先使用闭式解；</li>
+      <li>若使用 <strong>神经网络/Transformer</strong>（如 ET-BERT、MM4flow 等流量预训练模型），使用 MC Owen 采样是唯一选择；</li>
+      <li>通过在合理的计算预算内设置采样次数 M（如 1000-5000 次），可在精度和效率之间取得平衡。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 六、网络流量中的应用前景 -->
+<div class="card">
+  <h2>六、在网络流量可解释性中的应用前景</h2>
+
+  <h3>6.1 为什么 MC Owen 对流量模型特别有价值</h3>
+  <p>流量预训练模型（ET-BERT、MM4flow、TrafficFormer）几乎都是基于 Transformer 的神经网络架构。这意味着：</p>
+  <ul>
+    <li>Owen 闭式解（仅适用于 CatBoost 树模型）<strong>不适用</strong></li>
+    <li>需要模型无关的近似方法 → MC Owen 采样是唯一选择</li>
+  </ul>
+
+  <h3>6.2 具体应用流程</h3>
+  <div class="flow">
+    <div class="step">流量数据<br>按协议层次分组<br>（领域知识）</div>
+    <div class="arrow">→</div>
+    <div class="step">ET-BERT / MM4flow<br>黑盒 Transformer</div>
+    <div class="arrow">→</div>
+    <div class="step">MC Owen 采样<br>M 次模型调用</div>
+    <div class="arrow">→</div>
+    <div class="step">层次化归因<br>组级 + 特征级<br>+ 误差界</div>
+  </div>
+
+  <h3>6.3 示例：解释加密流量分类决策</h3>
+  <p>假设 ET-BERT 将某加密流量分类为"视频流"。使用 MC Owen 采样（M=2000）进行层次化解释：</p>
+  <pre>
+组结构：P = {时序组, 载荷统计组, 长度模式组}
+
+MC Owen 组级归因（含 95% 置信区间）：
+  时序组：      42% ± 3.2%   ← 主导贡献
+  载荷统计组：  35% ± 2.8%
+  长度模式组：  23% ± 2.1%
+
+时序组内归因：
+  包间隔方差：    48% ± 4.1%   ← 最关键的单一特征
+  流持续时间：    30% ± 3.5%
+  包间隔均值：    22% ± 2.9%
+  </pre>
+  <p>这种带误差界的层次化解释，让安全分析人员不仅知道"为什么模型做出这个决策"，还知道"这个解释有多可信"——这是仅凭 SHAP 热力图无法提供的信息。</p>
+</div>
+
+<!-- 七、总结 -->
+<div class="card">
+  <h2>七、总结与在 Owen 技术栈中的定位</h2>
+
+  <h3>7.1 核心贡献</h3>
+  <ol>
+    <li><strong>首创性：</strong>第一个专门针对 Owen 值设计的蒙特卡洛采样算法，填补了 Owen 值从理论到实践的关键空白</li>
+    <li><strong>质量保证：</strong>提供了严格的概率误差界，使近似 Owen 值具有可量化的可信度</li>
+    <li><strong>普适性：</strong>模型无关的设计使其适用于任意黑盒模型，为神经网络时代的层次化解释扫清了计算障碍</li>
+    <li><strong>理论完备：</strong>从无偏性、收敛率、误差界三个维度提供了完整的理论分析</li>
+  </ol>
+
+  <h3>7.2 在 Owen 值技术金字塔中的位置</h3>
+  <pre>
+        ┌───────────────────────┐
+        │   应用层：O-Shap      │  语义感知的层次化图像解释
+        │   (2025)              │
+        ├───────────────────────┤
+        │   算法层：MC Owen     │  带误差界的采样近似（本文）
+        │   (2023) ← 本文       │  ← 为上层应用提供计算基础
+        ├───────────────────────┤
+        │   解析层：Owen Tree   │  树模型的闭式精确解
+        │   (2024)              │
+        ├───────────────────────┤
+        │   公理层：Owen 值     │  带联盟结构的合作博弈解概念
+        │   (1977)              │
+        ├───────────────────────┤
+        │   基础层：Shapley 值  │  原子化特征博弈的公平分配
+        │   (1953)              │
+        └───────────────────────┘
+  </pre>
+
+  <p>MC Owen (2023) 处于承上启下的关键位置：向下继承 Owen (1977) 的公理体系，向上为 O-Shap (2025) 等应用提供计算引擎。没有它，Owen 值在神经网络上的应用将停留在理论设想阶段。</p>
+</div>
+
+</div>
+</body>
+</html>

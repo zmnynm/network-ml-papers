@@ -491,11 +491,11 @@
 
   <div class="sidebar-section">批判性审计 (Critique & Audit)</div>
   <ul class="sidebar-nav">
-    <li><a href="#sugar" class="paper-link active" onclick="showPaper('sugar')">
+    <li><a href="Sweet_Danger_of_Sugar_解读.html" class="paper-link" target="_blank">
       <span class="badge">SIGCOMM'25</span> The Sweet Danger of Sugar
     </a></li>
-    <li><a href="#sok" class="paper-link" onclick="showPaper('sok')">
-      <span class="badge">IEEE S&P'25</span> SoK: Decoding the Enigma of Encrypted NTC
+    <li><a href="SoK_Encrypted_Traffic_Classifiers_解读.html" class="paper-link" target="_blank">
+      <span class="badge">IEEE S&P'25</span> SoK: Decoding the Enigma
     </a></li>
   </ul>
 
@@ -505,25 +505,77 @@
       <span class="badge">WWW'22</span> ET-BERT
     </a></li>
   </ul>
+  <div class="sidebar-section">流量预训练模型 (Traffic Papers)</div>
+  <ul class="sidebar-nav">
+    <li><a href="ET-BERT_解读.html" class="paper-link" target="_blank">
+      <span class="badge">WWW'22</span> ET-BERT
+    </a></li>
+    <li><a href="TrafficFormer_解读.html" class="paper-link" target="_blank">
+      <span class="badge">IEEE S&P'25</span> TrafficFormer
+    </a></li>
+    <li><a href="MM4flow_解读.html" class="paper-link" target="_blank">
+      <span class="badge">CCS'25</span> MM4flow
+    </a></li>
+    <li><a href="Cross-Modality_Feature_Fusion_解读.html" class="paper-link" target="_blank">
+      <span class="badge">2025</span> Cross-Modality Fusion
+    </a></li>
+  </ul>
+
   <div class="sidebar-section">可解释性 — 局部解释</div>
   <ul class="sidebar-nav">
-    <li><a href="#local-explain" class="paper-link" onclick="showPaper('local-explain')">
-      <span class="badge">SHAP·TransSHAP·xNIDS</span> 局部解释方法
+    <li><a href="SHAP_解读.html" class="paper-link" target="_blank">
+      <span class="badge">NeurIPS'17</span> SHAP
+    </a></li>
+    <li><a href="TransSHAP_解读.html" class="paper-link" target="_blank">
+      <span class="badge">EACL'21</span> TransSHAP
+    </a></li>
+    <li><a href="BERT_Probing_解读.html" class="paper-link" target="_blank">
+      <span class="badge">ACL'19</span> BERT Probing
+    </a></li>
+    <li><a href="DeepAID_解读.html" class="paper-link" target="_blank">
+      <span class="badge">CCS'21</span> DeepAID
+    </a></li>
+    <li><a href="xNIDS_解读.html" class="paper-link" target="_blank">
+      <span class="badge">USENIX Sec'23</span> xNIDS
     </a></li>
   </ul>
+
   <div class="sidebar-section">可解释性 — 全局解释</div>
   <ul class="sidebar-nav">
-    <li><a href="#global-explain" class="paper-link" onclick="showPaper('global-explain')">
-      <span class="badge">TRUSTEE·GEAD·Agua</span> 全局解释方法
+    <li><a href="TRUSTEE_解读.html" class="paper-link" target="_blank">
+      <span class="badge">CCS'22</span> TRUSTEE
+    </a></li>
+    <li><a href="GEAD_解读.html" class="paper-link" target="_blank">
+      <span class="badge">CCS'24</span> GEAD
+    </a></li>
+    <li><a href="Agua_解读.html" class="paper-link" target="_blank">
+      <span class="badge">SIGCOMM'25</span> Agua
     </a></li>
   </ul>
-  <div class="sidebar-section">可解释性 — 扩展与综述</div>
+
+  <div class="sidebar-section">可解释性 — Owen拓展与综述</div>
   <ul class="sidebar-nav">
-    <li><a href="#owen" class="paper-link" onclick="showPaper('owen')">
-      <span class="badge">Owen</span> Owen 值与层次解释
+    <li><a href="O-Shap_解读.html" class="paper-link" target="_blank">
+      <span class="badge">2025</span> O-Shap
     </a></li>
-    <li><a href="#llm-survey" class="paper-link" onclick="showPaper('llm-survey')">
-      <span class="badge">ACM TIST'24</span> LLM可解释性综述
+    <li><a href="Owen_MC_Approximation_解读.html" class="paper-link" target="_blank">
+      <span class="badge">2023</span> Owen MC近似
+    </a></li>
+    <li><a href="Owen_Tree_Models_解读.html" class="paper-link" target="_blank">
+      <span class="badge">2024</span> Owen 树模型
+    </a></li>
+    <li><a href="LLM_Explainability_Survey_解读.html" class="paper-link" target="_blank">
+      <span class="badge">ACM TIST'24</span> LLM综述
+    </a></li>
+  </ul>
+
+  <div class="sidebar-section">批判性审计 (Critique & Audit)</div>
+  <ul class="sidebar-nav">
+    <li><a href="Sweet_Danger_of_Sugar_解读.html" class="paper-link" target="_blank">
+      <span class="badge">SIGCOMM'25</span> The Sweet Danger of Sugar
+    </a></li>
+    <li><a href="SoK_Encrypted_Traffic_Classifiers_解读.html" class="paper-link" target="_blank">
+      <span class="badge">IEEE S&P'25</span> SoK: Decoding the Enigma
     </a></li>
   </ul>
 
@@ -1216,610 +1268,6 @@
     </div>
 
   </div><!-- /#etbert -->
-
-  <!-- ================================================================== -->
-  <!-- PANE: LOCAL EXPLAINABILITY (局部解释)                                -->
-  <!-- ================================================================== -->
-  <div id="local-explain" class="paper-pane">
-
-    <div class="hero" style="background: linear-gradient(135deg, #0d3b66, #1a6daa, #2980b9);">
-      <div class="tag tag-blue">局部解释方法</div>
-      <h1>局部可解释性：从 SHAP 到 xNIDS</h1>
-      <div class="subtitle">理解单个预测中每个特征/Token 的贡献</div>
-    </div>
-
-    <div class="one-liner one-liner-blue">
-      局部解释回答<strong>"为什么这个特定样本被判定为 X？"</strong>。从 2017 年 SHAP 为加性特征归因建立博弈论基础开始，到 DeepAID 将解释引入无监督安全异常检测，再到 xNIDS 实现从解释到自动防御规则生成的端到端体系——这五篇论文完整呈现了局部可解释性方法从<strong>通用 ML → NLP → 网络安全的演进路径</strong>。
-    </div>
-
-    <!-- SHAP 2017 -->
-    <div class="card">
-      <h2>1. SHAP (NeurIPS 2017) — 奠基之作</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Scott M. Lundberg, Su-In Lee (University of Washington)</td></tr><tr><td style="font-weight:600;">会议</td><td>NeurIPS 2017 · Oral Presentation · 万级引用</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>证明 Shapley 值（合作博弈论）可以统一当时所有加性特征归因方法（LIME、DeepLIFT、LRP、QII 等），并提出 Kernel SHAP（模型无关）和 Deep SHAP（深度网络专用）两种高效实现。SHAP 是<strong>唯一</strong>同时满足局部保真性、缺失性、一致性三大公理的加性解释方法。</div>
-
-      <div class="grid-2" style="margin-top:14px;">
-        <div>
-          <h4>方法体系</h4>
-          <table>
-            <tr><th>变体</th><th>适用场景</th></tr>
-            <tr><td>Kernel SHAP</td><td>模型无关，加权线性回归</td></tr>
-            <tr><td>Tree SHAP</td><td>树模型，O(TL²) 高效</td></tr>
-            <tr><td>Deep SHAP</td><td>深度网络，梯度反传</td></tr>
-            <tr><td>Linear SHAP</td><td>线性模型解析解</td></tr>
-          </table>
-        </div>
-        <div>
-          <h4>三大公理</h4>
-          <ol style="padding-left:16px;line-height:1.8;">
-            <li><strong>局部保真性</strong>：解释输出之和 = 模型输出</li>
-            <li><strong>缺失性</strong>：缺失特征贡献为 0</li>
-            <li><strong>一致性</strong>：特征贡献增大，归因不减小</li>
-          </ol>
-        </div>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:14px;">
-        <div class="issue"><strong>局限：</strong>计算开销大（Kernel SHAP 需指数级模型评估）；假设特征独立；未针对文本/序列等结构化数据优化。</div>
-        <div class="solution"><div class="sol-tag">影响</div>Python 库 <code>shap</code> 成为 XAI 领域事实标准（GitHub 20k+ stars）；启发了后续 TransSHAP、xNIDS、DeepAID 等安全领域工作。</div>
-      </div>
-    </div>
-
-    <!-- TransSHAP 2021 -->
-    <div class="card">
-      <h2>2. TransSHAP (EACL 2021) — SHAP 进入 Transformer 时代</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Kokalj et al. (Jožef Stefan Institute, Slovenia)</td></tr><tr><td style="font-weight:600;">会议</td><td>EACL 2021 Hackashop</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>将 Kernel SHAP 适配到 BERT 等 Transformer 分类器。关键改动：用 <code>[MASK]</code> token 替代原始 SHAP 的"零值遮蔽"策略——利用 BERT 预训练中已学到的掩码语义。同时提出<strong>序列化可视化</strong>，按文本顺序展示 token 重要性，优于传统排序词列表。</div>
-
-      <div class="grid-2" style="margin-top:12px;">
-        <div>
-          <h4>与原始 SHAP 的区别</h4>
-          <table>
-            <tr><th>维度</th><th>原始 SHAP</th><th>TransSHAP</th></tr>
-            <tr><td>遮蔽策略</td><td>用 0 替代</td><td>用 <code>[MASK]</code> 替代</td></tr>
-            <tr><td>特征粒度</td><td>任意特征</td><td>WordPiece token</td></tr>
-            <tr><td>可视化</td><td>排序列表</td><td>序列化呈现</td></tr>
-          </table>
-        </div>
-        <div>
-          <h4>评估结果</h4>
-          <ul style="padding-left:16px;line-height:1.8;">
-            <li>保真度与 LIME、IG 相当或更优</li>
-            <li>序列化可视化 > 排序词列表（人类评估）</li>
-            <li>可推广到 RoBERTa、DistilBERT 等变体</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>Kernel SHAP 需要大量模型评估（每个样本需多次调用 BERT），推理开销大；WordPiece 粒度不够直观；假设 token 之间独立（文本中存在强依赖）。</div>
-        <div class="solution"><div class="sol-tag">对流量模型的启示</div>ET-BERT 等流量预训练模型的解释可借鉴 TransSHAP 思路——将网络流量 token 类比为文本 token，使用 <code>[MASK]</code> 策略进行解释。</div>
-      </div>
-    </div>
-
-    <!-- BERT Probing 2019 -->
-    <div class="card">
-      <h2>3. BERT Probing (ACL 2019) — BERT 学到了什么？</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Jawahar, Sagot, Seddah (Inria, France)</td></tr><tr><td style="font-weight:600;">会议</td><td>ACL 2019 · 引用 1400+</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>通过 10 个探测任务（Probing Tasks）系统性地发现 BERT 的<strong>层级递进编码模式</strong>——表层特征在低层、句法特征在中层、语义特征在高层。这一发现为理解 Transformer 内部表示结构提供了基础框架。</div>
-
-      <div style="margin-top:14px;">
-        <h4>层级编码发现</h4>
-        <table>
-          <tr><th>知识类型</th><th>最佳编码层</th><th>探测任务示例</th></tr>
-          <tr><td><strong>表层特征</strong></td><td>低层 (1-3)</td><td>句子长度、词存在性</td></tr>
-          <tr><td><strong>句法特征</strong></td><td>中层 (4-8)</td><td>句法树深度、成分序列、词序</td></tr>
-          <tr><td><strong>语义特征</strong></td><td>高层 (9-12)</td><td>时态、主谓一致、并列结构</td></tr>
-        </table>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>线性分类器准确率高 ≠ 表示确实被模型用于预测（相关性 vs 因果性）；探测任务偏浅层语言属性；仅分析 BERT-base。</div>
-        <div class="solution"><div class="sol-tag">对流量模型的启示</div>Probing 方法可直接应用于 ET-BERT——分析其各层是否也呈现类似的层级结构（如低层编码包长/端口 → 中层编码协议状态 → 高层编码应用语义）。</div>
-      </div>
-    </div>
-
-    <!-- DeepAID 2021 -->
-    <div class="card">
-      <h2>4. DeepAID (CCS 2021) — 无监督异常检测可解释性</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Han et al. (Tsinghua University)</td></tr><tr><td style="font-weight:600;">会议</td><td>ACM CCS 2021 · 网络安全四大顶会</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>首个面向<strong>无监督</strong>深度学习安全异常检测的解释框架。包含 Interpreter（基于参考的反事实解释）和 Distiller（人机闭环模型改进）两个核心组件。覆盖表格、序列、图三种数据模态。</div>
-
-      <div style="margin-top:14px;">
-        <h4>Interpreter 工作原理</h4>
-        <div class="framework">
-          <div class="level">
-            <span class="label-text">输入</span>
-            <div class="node">异常样本 x</div>
-            <div class="arrow">→</div>
-            <div class="node">搜索最优参考对象 r</div>
-            <div class="arrow">→</div>
-            <div class="node sel">解释 = x 与 r 的差异</div>
-          </div>
-          <p style="font-size:13px; margin-top:8px; text-align:center; opacity:0.8;">
-            minimize d(x, r) &nbsp; subject to: &nbsp; AnomalyScore(r) ≤ τ &nbsp;+&nbsp; 安全域约束
-          </p>
-        </div>
-      </div>
-
-      <div class="grid-2" style="margin-top:12px;">
-        <div>
-          <h4>关键发现</h4>
-          <ul style="padding-left:16px;line-height:1.8;">
-            <li>解释与安全专家判断高度一致</li>
-            <li>发现了 Kitsune 中的<strong>特征提取 bug</strong></li>
-            <li>Distiller 有效降低误报率（FPR）</li>
-            <li>MITRE ATT&CK 框架对齐</li>
-          </ul>
-        </div>
-        <div>
-          <h4>与其他方法对比</h4>
-          <table>
-            <tr><th>特性</th><th>LIME/SHAP</th><th>DeepAID</th></tr>
-            <tr><td>监督要求</td><td>有监督</td><td><strong>无监督</strong></td></tr>
-            <tr><td>安全域约束</td><td>❌</td><td><strong>✅</strong></td></tr>
-            <tr><td>模型改进闭环</td><td>❌</td><td><strong>✅ Distiller</strong></td></tr>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- xNIDS 2023 -->
-    <div class="card">
-      <h2>5. xNIDS (USENIX Sec 2023) — 从解释到自动防御</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Wei, Li, Zhao, Hu (University at Buffalo + Palo Alto Networks)</td></tr><tr><td style="font-weight:600;">会议</td><td>USENIX Security 2023 · 网络安全四大顶会</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>首个从 DL-NIDS 解释到<strong>自动防御规则生成</strong>的端到端框架。解决两个关键挑战：(1) DL-NIDS 的时序依赖——通过加权随机采样处理历史输入；(2) 网络协议特征的结构化依赖——通过特征分组 + 稀疏组套索（Sparse Group Lasso）处理。</div>
-
-      <div style="margin-top:14px;">
-        <h4>评估结果</h4>
-        <table>
-          <tr><th>指标</th><th>xNIDS</th><th>对比</th></tr>
-          <tr><td>保真度 (AUC)</td><td>Kitsune: 0.316 / ODDS: 0.325</td><td>ADA 下降最显著</td></tr>
-          <tr><td>稀疏性 (MAZ-AUC)</td><td>Kitsune: 0.774 / ODDS: 0.814</td><td>远优于 LEMNA (0.542)</td></tr>
-          <tr><td>稳定性</td><td>Kitsune: 0.850 / RNN-IDS: 0.914</td><td>优于 LIME/SHAP/LEMNA/IG/LRP</td></tr>
-          <tr><td>恶意流量阻断率</td><td colspan="2">95.72%</td></tr>
-          <tr><td>良性流量通过率</td><td colspan="2">98.54%</td></tr>
-        </table>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:14px;">
-        <div class="issue"><strong>局限：</strong>需要访问模型内部结构；特征分组质量影响效果；解释延迟 ~600ms（准实时而非实时）。</div>
-        <div class="solution"><div class="sol-tag">防御规则生成</div>xNIDS 可自动生成兼容 <strong>iptables、OpenFlow、Pfsense、Squid</strong> 的防御规则，支持单流/单主机/多主机三级粒度，将解释直接转化为可部署的防御动作。</div>
-      </div>
-    </div>
-
-    <!-- Local Explainability Summary -->
-    <div class="card summary-card summary-blue">
-      <h2>局部解释方法演进总结</h2>
-      <div class="flow" style="font-size:13px; flex-wrap:wrap;">
-        <div class="step">SHAP (2017)<br><small>加性归因基础</small></div>
-        <div class="arrow">→</div>
-        <div class="step">TransSHAP (2021)<br><small>文本/Transformer</small></div>
-        <div class="arrow">→</div>
-        <div class="step">DeepAID (2021)<br><small>无监督安全</small></div>
-        <div class="arrow">→</div>
-        <div class="step">xNIDS (2023)<br><small>解释→防御闭环</small></div>
-      </div>
-      <p style="margin-top:14px; font-size:13px; opacity:0.85;">
-        BERT Probing (ACL 2019) 提供了<strong>层级分析</strong>的补充视角——不解释单个预测，而是分析模型各层编码了什么知识。这条线与 SHAP 系列互补：SHAP 回答"这个特征贡献多少"，Probing 回答"这一层理解什么"。
-      </p>
-    </div>
-  </div><!-- /#local-explain -->
-
-  <!-- ================================================================== -->
-  <!-- PANE: GLOBAL EXPLAINABILITY (全局解释)                               -->
-  <!-- ================================================================== -->
-  <div id="global-explain" class="paper-pane">
-
-    <div class="hero" style="background: linear-gradient(135deg, #1a5276, #2471a3, #2e86c1);">
-      <div class="tag tag-blue">全局解释方法</div>
-      <h1>全局可解释性：从决策树提取到概念级解释</h1>
-      <div class="subtitle">理解模型整体的决策逻辑，而非单个样本的预测原因</div>
-    </div>
-
-    <div class="one-liner one-liner-blue">
-      局部解释回答"为什么这个样本被判为 X"，全局解释回答<strong>"这个模型整体上如何理解异常/分类？"</strong>。三篇论文构成了从<strong>特征级规则提取 → 知识蒸馏 → 概念级解释</strong>的完整技术演进：TRUSTEE (CCS 2022) 建立信任评估框架，GEAD (CCS 2024) 实现低置信度增强的规则提取，Agua (SIGCOMM 2025) 将解释粒度从特征级提升到概念级。
-    </div>
-
-    <!-- TRUSTEE 2022 -->
-    <div class="card">
-      <h2>1. TRUSTEE (CCS 2022) — The Emperor has no Clothes</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Jacobs, Beltiukov, Willinger, Ferreira, Gupta, Granville (UCSB + UFRGS + NIKSUN)</td></tr><tr><td style="font-weight:600;">会议</td><td>ACM CCS 2022 · <strong>Best Paper Honorable Mention</strong></td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>提出<strong>欠规范化（Underspecification）</strong>概念——ML 模型在实验室表现良好但在真实网络中意外失效的根本原因。TRUSTEE 框架通过迭代采样 + 稳定性选择提取高保真度决策树，并生成<strong>信任报告（Trust Report）</strong>标记捷径学习、虚假关联和 OOD 脆弱性证据。</div>
-
-      <div style="margin-top:14px;">
-        <h4>TRUSTEE 工作流</h4>
-        <div class="flow">
-          <div class="step">随机子采样<br><small>×50 轮</small></div>
-          <div class="arrow">→</div>
-          <div class="step">黑箱模型<br><small>生成伪标签</small></div>
-          <div class="arrow">→</div>
-          <div class="step">训练候选<br><small>决策树</small></div>
-          <div class="arrow">→</div>
-          <div class="step">稳定性选择<br><small>最高一致性</small></div>
-          <div class="arrow">→</div>
-          <div class="step sel">剪枝 +<br><small>信任报告</small></div>
-        </div>
-      </div>
-
-      <div class="grid-2" style="margin-top:14px;">
-        <div>
-          <h4>三种欠规范化形式</h4>
-          <ul style="padding-left:16px;line-height:1.8;">
-            <li><strong>捷径学习</strong>：模型抓住浅层非鲁棒特征</li>
-            <li><strong>虚假关联</strong>：利用训练数据中的偶然相关性</li>
-            <li><strong>OOD 脆弱性</strong>：分布外静默失效</li>
-          </ul>
-        </div>
-        <div>
-          <h4>Python API</h4>
-          <pre style="font-size:11px; background:#f0f4f8; padding:10px; border-radius:8px;">from trustee import ClassificationTrustee
-trustee = ClassificationTrustee(
-    expert=blackbox_model)
-trustee.fit(X_train, y_train,
-    num_iter=50, samples_size=0.3)
-dt, pruned_dt, agreement, reward =
-    trustee.explain()</pre>
-        </div>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>决策树固有局限——复杂模型的决策边界可能无法被浅层树准确近似；全局规则可能掩盖特定子群的异常行为；不处理时序动态变化。</div>
-        <div class="solution"><div class="sol-tag">与 Sugar/SoK 的关联</div>TRUSTEE 和 Sugar 同属"批判链"——TRUSTEE 从模型信任评估角度揭露欠规范化问题，Sugar 从实验方法学角度揭露评估缺陷。两者的核心信息一致：<strong>不要把高测试准确率等同于可靠部署。</strong></div>
-      </div>
-    </div>
-
-    <!-- GEAD 2024 -->
-    <div class="card">
-      <h2>2. GEAD (CCS 2024) — Rules Refine the Riddle</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Han et al. (Tsinghua + SMU + NTU + State Grid Shanghai)</td></tr><tr><td style="font-weight:600;">会议</td><td>ACM CCS 2024 · <strong>Distinguished Artifact Award</strong>（CCS 历史上首次） · 接收率 16%</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>从黑箱 DL 异常检测模型中<strong>自动提取人类可读的 IF-THEN 规则集</strong>。核心创新是<strong>低置信度增强</strong>——不满足于简单的全局近似，主动识别树与模型不一致的区域并补充规则。提供三种使用模式：知识比较、模型间差异识别、知识融合。</div>
-
-      <div style="margin-top:14px;">
-        <h4>GEAD 六步流程</h4>
-        <div class="flow" style="font-size:12px; flex-wrap:wrap;">
-          <div class="step">1. 根回归树生成<br><small>初步全局近似</small></div>
-          <div class="arrow">→</div>
-          <div class="step">2. 低置信度区域识别<br><small>不一致检测</small></div>
-          <div class="arrow">→</div>
-          <div class="step">3. 低置信度增强<br><small>合成数据生成</small></div>
-          <div class="arrow">→</div>
-          <div class="step">4. 低置信度规则<br><small>补充规则</small></div>
-          <div class="arrow">→</div>
-          <div class="step">5. 合并与离散化<br><small>人类可读</small></div>
-          <div class="arrow">→</div>
-          <div class="step sel">6. IF-THEN<br><small>规则集</small></div>
-        </div>
-      </div>
-
-      <div class="grid-2" style="margin-top:14px;">
-        <div>
-          <h4>三种使用模式</h4>
-          <table>
-            <tr><th>模式</th><th>描述</th></tr>
-            <tr><td>知识比较</td><td>模型规则 vs 专家知识</td></tr>
-            <tr><td>差异识别</td><td>不同模型的规则对比</td></tr>
-            <tr><td>知识融合</td><td>专家规则 + 模型规则深度增强</td></tr>
-          </table>
-        </div>
-        <div>
-          <h4>与 DeepAID 的关系</h4>
-          <table>
-            <tr><th>维度</th><th>DeepAID</th><th>GEAD</th></tr>
-            <tr><td>解释范围</td><td>局部</td><td><strong>全局</strong></td></tr>
-            <tr><td>输出形式</td><td>参考样本</td><td><strong>规则集</strong></td></tr>
-            <tr><td>年份</td><td>CCS 2021</td><td>CCS 2024</td></tr>
-          </table>
-          <p style="font-size:12px; margin-top:6px; opacity:0.8;">同一清华团队，"局部→全局"的完整技术路线</p>
-        </div>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>如果原模型决策边界过于复杂，规则集可能仍较大；离散化可能带来信息损失；对复杂时序依赖，树形规则表达有限。</div>
-        <div class="solution"><div class="sol-tag">实际部署</div>已在真实 SCADA 工控系统中验证。代码开源（CCS Distinguished Artifact Award），可直接用于流量预训练模型的全局规则提取。</div>
-      </div>
-    </div>
-
-    <!-- Agua 2025 -->
-    <div class="card">
-      <h2>3. Agua (SIGCOMM 2025) — 概念级解释</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">作者</td><td>Patel, Han, Narodytska, Abdu Jyothi (UC Irvine + KAIST + VMware Research)</td></tr><tr><td style="font-weight:600;">会议</td><td>ACM SIGCOMM 2025 · 网络/通信顶会</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>首个面向学习型网络系统的<strong>概念级解释器</strong>。将解释粒度从"特征 X 贡献了 Y"提升到"概念 C 激活了 Z"——例如不是"字节 47 的值 0x3F 贡献了 0.2"，而是"网络条件不稳定"这个概念被激活。LLM 辅助概念生成，保真度 93-99%。</div>
-
-      <div style="margin-top:14px;">
-        <h4>代理概念模型架构</h4>
-        <div class="framework">
-          <div class="level">
-            <div class="node">输入 x</div>
-            <div class="arrow">→</div>
-            <div class="node">编码器<br><small>f_encoder (冻结)</small></div>
-            <div class="arrow">→</div>
-            <div class="node sel">概念编码器<br><small>g_concept</small></div>
-            <div class="arrow">→</div>
-            <div class="node">概念→输出<br><small>h_predictor</small></div>
-            <div class="arrow">→</div>
-            <div class="node">决策 y'</div>
-          </div>
-          <p style="font-size:12px; margin-top:8px; text-align:center; opacity:0.8;">
-            概念瓶颈：模型决策必须通过概念层 → 每个概念的贡献可直接读出
-          </p>
-        </div>
-      </div>
-
-      <div class="grid-2" style="margin-top:14px;">
-        <div>
-          <h4>三种典型应用</h4>
-          <table>
-            <tr><th>应用</th><th>保真度</th></tr>
-            <tr><td>ABR 流媒体</td><td>93-99%</td></tr>
-            <tr><td>拥塞控制</td><td>93-99%</td></tr>
-            <tr><td>DDoS 检测</td><td>93-99%</td></tr>
-          </table>
-        </div>
-        <div>
-          <h4>四种使用场景</h4>
-          <ul style="padding-left:16px;line-height:1.8;">
-            <li><strong>调试意外行为</strong>：追溯概念激活</li>
-            <li><strong>检测分布偏移</strong>：概念激活模式监控</li>
-            <li><strong>概念级重训练</strong>：修正特定概念错误</li>
-            <li><strong>数据集增强</strong>：补充弱覆盖区域</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>解释质量高度依赖概念集质量；LLM 生成的概念需专家验证；静态概念集无法处理新出现概念；代理模型与原始模型存在 1-7% 的保真度差距。</div>
-        <div class="solution"><div class="sol-tag">LLM 辅助概念生成</div>利用 GPT-4 等 LLM 的领域知识生成候选概念（如"在视频流 ABR 中，哪些网络条件影响码率决策？"），大幅减少人工概念工程成本。这是可解释性研究的前沿方向——从特征级走向概念级。</div>
-      </div>
-    </div>
-
-    <!-- Global Explainability Summary -->
-    <div class="card summary-card summary-blue">
-      <h2>全局解释方法演进：特征级 → 概念级</h2>
-      <div class="flow">
-        <div class="step">TRUSTEE (2022)<br><small>决策树 + 信任报告</small></div>
-        <div class="arrow">→</div>
-        <div class="step">GEAD (2024)<br><small>IF-THEN 规则集</small></div>
-        <div class="arrow">→</div>
-        <div class="step">Agua (2025)<br><small>概念级解释</small></div>
-      </div>
-      <p style="margin-top:14px; font-size:13px; opacity:0.85;">
-        趋势：从 <strong>特征级（原始输入特征）</strong>→ <strong>规则级（IF-THEN 语义）</strong>→ <strong>概念级（领域语义概念）</strong>。每一代都提升了解释结果与人类推理方式的对齐度。
-      </p>
-    </div>
-  </div><!-- /#global-explain -->
-
-  <!-- ================================================================== -->
-  <!-- PANE: OWEN VALUES EXTENSION                                         -->
-  <!-- ================================================================== -->
-  <div id="owen" class="paper-pane">
-
-    <div class="hero" style="background: linear-gradient(135deg, #1e3a5f, #2c5282, #3b82f6);">
-      <div class="tag" style="background:#7c3aed;">Owen 值扩展</div>
-      <h1>Owen 值：从平坦 Shapley 到层次化解释</h1>
-      <div class="subtitle">当特征具有天然群组结构时，Owen 值提供更合理的归因</div>
-    </div>
-
-    <div class="one-liner one-liner-blue">
-      经典 Shapley 值将所有特征视为<strong>平等的独立个体</strong>。但在实际场景中，特征具有天然的层次群组结构（如网络流量中 TCP 相关特征自然成组，图像中像素按语义区域成组）。<strong>Owen 值（1977）</strong>将特征划分为预定义的联盟结构（coalition structure），先在组间分配贡献、后在组内分配——三篇论文分别解决了 Owen 值的<strong>语义感知应用、高效近似计算、和树模型闭式解</strong>。
-    </div>
-
-    <!-- O-Shap 2025 -->
-    <div class="card">
-      <h2>1. O-Shap (2025) — 语义感知的层次图像解释</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">发表</td><td>2025 年</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>将 Owen 值应用于图像解释，通过<strong>语义分割</strong>将像素自然划分为语义区域（联盟结构），实现"哪些语义区域对预测最重要 → 区域内哪些像素最关键的层次化解释。提出 <strong>T-property</strong>（总贡献属性），确保层次解释的加和一致性。</div>
-
-      <div style="margin-top:14px;">
-        <h4>Owen 值 vs Shapley 值</h4>
-        <table>
-          <tr><th>维度</th><th>Shapley 值 (1953)</th><th>Owen 值 (1977)</th></tr>
-          <tr><td>特征结构</td><td>所有特征平等独立</td><td>特征按群组分层</td></tr>
-          <tr><td>归因过程</td><td>直接到每个特征</td><td>先组间 → 再组内</td></tr>
-          <tr><td>适用场景</td><td>无先验群组的平坦特征</td><td>有天然群组的层次化特征</td></tr>
-          <tr><td>效率公理</td><td>所有特征贡献之和 = 预测</td><td><strong>T-property</strong>：组贡献 = 组内成员贡献之和</td></tr>
-        </table>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>语义分割的质量直接影响解释效果；计算开销高于平坦 Shapley（需处理双层联盟）。</div>
-        <div class="solution"><div class="sol-tag">对流量解释的启示</div>网络流量中特征天然分层：协议层（TCP 组 vs UDP 组）→ 字段组（端口组 vs 标志位组 vs 窗口组），Owen 值比 Shapley 值更适合这一层次结构。</div>
-      </div>
-    </div>
-
-    <!-- Marginal Attribution 2024 -->
-    <div class="card">
-      <h2>2. Marginal Feature Attributions of Tree-Based Models (2024)</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">发表</td><td>2024 年</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>推导了<strong>树模型（CatBoost）中 Owen 值的闭式解</strong>，使得在树模型上计算 Owen 值不再需要 MC 采样。同时证明了一个关键结论：TreeSHAP 的<strong>路径依赖（path-dependent）变体不满足实现不变性（implementation invariance）</strong>——即功能相同的不同树结构会产生不同的特征归因。</div>
-
-      <div style="margin-top:14px;">
-        <h4>关键发现</h4>
-        <table>
-          <tr><th>发现</th><th>含义</th></tr>
-          <tr><td>Owen 值闭式解</td><td>CatBoost 上可精确高效计算层次化特征归因</td></tr>
-          <tr><td>路径依赖 TreeSHAP 不满足实现不变性</td><td>两种功能等价但结构不同的树产生不同解释 → 解释不可信</td></tr>
-          <tr><td>Banzhaf 值也有闭式解</td><td>提供了 Banzhaf 值作为 Shapley/Owen 之外的替代选择</td></tr>
-        </table>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>闭式解仅限于树模型（主要是 CatBoost），不适用于神经网络等其他模型类型。</div>
-        <div class="solution"><div class="sol-tag">对实践的启示</div>在流量分类中使用 LightGBM/XGBoost（浅层基线）时，可通过 Owen 值获得层次化特征归因——例如先归因到"协议头"vs"载荷统计"组，再在组内归因到具体字段。</div>
-      </div>
-    </div>
-
-    <!-- MC Approximation 2023 -->
-    <div class="card">
-      <h2>3. Monte Carlo Approximation of Group Explainers (2023)</h2>
-      <table class="paper-meta"><tr><td style="font-weight:600;width:80px;">发表</td><td>2023 年</td></tr></table>
-
-      <div class="finding"><strong>核心贡献：</strong>提出用于<strong>Owen 值的蒙特卡洛采样算法</strong>，并给出了<strong>严格的误差界</strong>。这是第一个为 Owen 值提供理论上保证的 MC 近似方法——当无法解析计算时（如神经网络），可以通过采样获得有质量保证的近似 Owen 值。</div>
-
-      <div style="margin-top:14px;">
-        <h4>MC Owen 采样策略</h4>
-        <div class="framework">
-          <div class="level">
-            <div class="node">定义联盟结构<br><small>G₁, G₂, ..., Gₖ</small></div>
-            <div class="arrow">→</div>
-            <div class="node">随机采样<br><small>组排列 + 组内特征排列</small></div>
-            <div class="arrow">→</div>
-            <div class="node">边际贡献<br><small>Δ = f(S∪{i}) - f(S)</small></div>
-            <div class="arrow">→</div>
-            <div class="node sel">加权平均<br><small>误差界保证</small></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="issue-solution-pair" style="margin-top:12px;">
-        <div class="issue"><strong>局限：</strong>采样收敛速度取决于联盟结构的复杂度和模型评估成本；对于高维特征空间，MC 采样仍可能较慢。</div>
-        <div class="solution"><div class="sol-tag">与 O-Shap 和闭式解的互补</div>三者形成完整的 Owen 值计算体系：闭式解（树模型精确计算）→ MC 采样（神经网络近似）→ O-Shap（语义感知的层次应用）。用户可根据模型类型选择合适的计算方式。</div>
-      </div>
-    </div>
-
-    <!-- Owen Summary -->
-    <div class="card summary-card summary-blue">
-      <h2>Owen 值方法体系总结</h2>
-      <table>
-        <tr><th>论文</th><th>核心贡献</th><th>计算方式</th><th>适用模型</th></tr>
-        <tr><td>O-Shap (2025)</td><td>语义感知层次解释 + T-property</td><td>采样/优化</td><td>图像/DNN</td></tr>
-        <tr><td>Marginal Attrib. (2024)</td><td>树模型闭式解 + 揭露 TreeSHAP 缺陷</td><td>解析/闭式</td><td>CatBoost</td></tr>
-        <tr><td>MC Approx. (2023)</td><td>MC 采样算法 + 严格误差界</td><td>蒙特卡洛</td><td>通用（模型无关）</td></tr>
-      </table>
-      <p style="margin-top:14px; font-size:13px; opacity:0.85;">
-        核心启示：当特征具有层次群组结构时，<strong>Owen 值 > Shapley 值</strong>。网络流量（协议层 → 字段组 → 单字段）和文本（段落 → 句子 → token）天然适合 Owen 值解释。
-      </p>
-    </div>
-  </div><!-- /#owen -->
-
-  <!-- ================================================================== -->
-  <!-- PANE: LLM EXPLAINABILITY SURVEY                                     -->
-  <!-- ================================================================== -->
-  <div id="llm-survey" class="paper-pane">
-
-    <div class="hero" style="background: linear-gradient(135deg, #2c1810, #4a2c17, #6b3a2a);">
-      <div class="tag" style="background:#e67e22;">ACM TIST 2024 · Survey</div>
-      <h1>LLM 可解释性综述</h1>
-      <div class="subtitle">Explainability for Large Language Models: A Survey</div>
-      <div class="meta">
-        <span>Zhao, Chen, Yang, Liu, Deng, Cai, Wang, Yin, Du</span>
-        <span>NJIT · Johns Hopkins · Wake Forest · Baidu · 引用 318+</span>
-      </div>
-    </div>
-
-    <div class="one-liner one-liner-blue">
-      首个按<strong>训练范式 × 解释范围</strong>建立 LLM 可解释性分类体系的综述（微调 vs. 提示学习 × 局部 vs. 全局）。覆盖特征归因、注意力分析、探针任务、知识定位、机制可解释性、电路发现等方法。为仓库中的流量预训练模型（基于 Transformer 架构）提供了方法论框架。
-    </div>
-
-    <!-- Taxonomy -->
-    <div class="card">
-      <h2>1. 分类框架：训练范式 × 解释范围</h2>
-
-      <table>
-        <tr><th></th><th>传统微调范式</th><th>提示学习范式</th></tr>
-        <tr><td><strong>局部解释</strong></td>
-          <td>特征归因 (SHAP, IG)<br>注意力分析<br>基于示例的方法</td>
-          <td>提示归因<br>ICL 分析<br>CoT 忠实度评估</td></tr>
-        <tr><td><strong>全局解释</strong></td>
-          <td>知识神经元/电路分析<br>探针任务聚合<br>参数级知识定位</td>
-          <td>能力边界刻画<br>系统性提示探索<br>涌现行为分析</td></tr>
-      </table>
-
-      <p style="margin-top:12px;">这个分类直接对应本仓库的研究方向：<strong>流量预训练模型（微调范式 + 冻结编码器评估）</strong>和<strong>可解释性方法（从局部到全局）</strong>的交叉。</p>
-    </div>
-
-    <!-- Key Research Directions -->
-    <div class="card">
-      <h2>2. 五大核心研究方向</h2>
-
-      <div class="grid-2">
-        <div>
-          <h4>知识定位 (Knowledge Localization)</h4>
-          <p style="font-size:13px;">哪些参数/层/注意力头存储了特定知识？通过<strong>因果追踪 (Causal Tracing)</strong>在模型中间状态进行干预。发现：事实知识主要存储在 FFN 层的 MLP 参数中。</p>
-        </div>
-        <div>
-          <h4>机制可解释性 (Mechanistic Interpretability)</h4>
-          <p style="font-size:13px;">分解完整推理过程为可理解的子模块。<strong>电路发现 (Circuit Discovery)</strong>寻找从输入到输出的最小化子网络；逆向工程神经元激活→人类概念。</p>
-        </div>
-        <div>
-          <h4>涌现能力解释</h4>
-          <p style="font-size:13px;">思维链推理、指令遵循等涌现能力从何而来？预训练隐式习得 vs 推理时顿悟？机制可解释性正在试图回答。</p>
-        </div>
-        <div>
-          <h4>幻觉与可解释性</h4>
-          <p style="font-size:13px;">通过可解释性方法分析 LLM 产生幻觉的内部机制。是否可以通过干预内部表示来减少幻觉？这是一个活跃的研究方向。</p>
-        </div>
-        <div>
-          <h4>评估基准缺失</h4>
-          <p style="font-size:13px;">缺乏 ground truth——模型的真实推理过程不可知。保真度、忠实度、可理解性等维度之间可能存在矛盾。建立标准化 LLM 可解释性评估基准是亟待解决的问题。</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Methods Quick Reference -->
-    <div class="card">
-      <h2>3. 关键方法速查</h2>
-      <table>
-        <tr><th>方法类别</th><th>代表方法</th><th>适用模型</th><th>解释粒度</th><th>本仓库相关论文</th></tr>
-        <tr><td>特征归因</td><td>SHAP, IG, Attention Rollout</td><td>BERT, GPT</td><td>Token 级</td><td>SHAP, TransSHAP, xNIDS</td></tr>
-        <tr><td>探针</td><td>Linear Probe, Structural Probe</td><td>BERT</td><td>层/神经元级</td><td>BERT Probing (Jawahar 2019)</td></tr>
-        <tr><td>知识定位</td><td>Causal Tracing, ROME</td><td>GPT, LLaMA</td><td>参数/层级</td><td>—</td></tr>
-        <tr><td>电路分析</td><td>Circuit Discovery, ACDC</td><td>小规模 GPT</td><td>子网络级</td><td>—</td></tr>
-        <tr><td>提示分析</td><td>Prompt Perturbation</td><td>GPT-3/4</td><td>Token/提示级</td><td>—</td></tr>
-        <tr><td>影响函数</td><td>TracIn, Representer Point</td><td>所有</td><td>训练样本级</td><td>—</td></tr>
-      </table>
-    </div>
-
-    <!-- Challenges & Future -->
-    <div class="card">
-      <h2>4. 六大挑战与未来方向</h2>
-      <div class="grid-2">
-        <div>
-          <ol style="padding-left:16px;line-height:2;">
-            <li><strong>规模挑战</strong>：千亿参数，逐参数分析不可行</li>
-            <li><strong>多模态扩展</strong>：纯文本 → 文本+图像+视频</li>
-            <li><strong>评估标准</strong>：缺乏统一的可解释性评估基准</li>
-          </ol>
-        </div>
-        <div>
-          <ol start="4" style="padding-left:16px;line-height:2;">
-            <li><strong>忠实度问题</strong>：解释可能只是合理化而非揭示真实机制</li>
-            <li><strong>因果关系</strong>：从相关性分析到因果机制分析</li>
-            <li><strong>实用化</strong>：将研究转化为实际可用的工具</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-
-    <!-- Connection to Repo -->
-    <div class="card summary-card summary-blue">
-      <h2>与仓库的关联</h2>
-      <p style="font-weight:600; color:#1a5276;">
-        本综述为仓库提供宏观框架。仓库中的具体方法（SHAP、DeepAID、GEAD、xNIDS 等）均可在这个分类体系下定位。流量预训练模型（ET-BERT 等）本质上是 Transformer 架构——LLM 可解释性方法中关于 Transformer 的部分（探针、特征归因、注意力分析）可直接迁移。机制可解释性和电路发现的思路可应用于流量预训练模型的内部分析。综述指出的<strong>从特征级解释向概念级、因果级解释的发展趋势</strong>，与 Agua (SIGCOMM 2025) 的概念瓶颈模型方向一致。
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>论文信息</h2>
-      <table style="text-align:left;">
-        <tr><td style="width:100px; font-weight:600;">发表期刊</td><td>ACM Transactions on Intelligent Systems and Technology (TIST), Vol. 15, Issue 2, pp. 1–38</td></tr>
-        <tr><td style="font-weight:600;">期刊级别</td><td>SCI Q1, IF 7.2, CCF B</td></tr>
-        <tr><td style="font-weight:600;">发表时间</td><td>2024年2月</td></tr>
-        <tr><td style="font-weight:600;">引用量</td><td>318+</td></tr>
-        <tr><td style="font-weight:600;">与本仓库关联</td><td>宏观方法论框架；指导流量预训练模型的可解释性研究方向</td></tr>
-      </table>
-    </div>
-  </div><!-- /#llm-survey -->
 
 </main>
 

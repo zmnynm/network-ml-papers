@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHAP (NeurIPS 2017) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#e67e22;">Oral Paper</span>
+  <h1>SHAP: A Unified Approach to Interpreting Model Predictions</h1>
+  <div class="subtitle">提出统一的加性特征归因框架，将六大解释方法统一于 Shapley 值理论之下，奠定现代可解释性 AI 的数学基础</div>
+  <div class="meta">
+    <span>Scott M. Lundberg &amp; Su-In Lee</span>
+    <span>University of Washington</span>
+    <span>NeurIPS 2017</span>
+    <span>引用 10,000+</span>
+  </div>
+</div>
+
+<!-- 1. THE CORE INSIGHT -->
+<div class="card">
+  <h2>1. 核心洞察：六法归一</h2>
+
+  <p>SHAP 论文最根本的贡献，不是提出了一种新的解释方法，而是<strong>证明了一个统一性命题</strong>：当时流行的六种模型解释方法——尽管它们在数学形式、计算方式和应用场景上看似迥异——实际上<strong>全都在尝试逼近同一个量：Shapley 值</strong>。</p>
+
+  <p>这六种方法分别是：</p>
+
+  <table>
+    <tr><th>方法</th><th>提出年份</th><th>核心思想</th><th>原始假设</th></tr>
+    <tr><td><strong>LIME</strong></td><td>2016</td><td>局部线性近似，采样扰动</td><td>局部线性可近似</td></tr>
+    <tr><td><strong>DeepLIFT</strong></td><td>2017</td><td>参考值对比，反向传播贡献</td><td>参考基线的选择</td></tr>
+    <tr><td><strong>Layer-wise Relevance Propagation (LRP)</strong></td><td>2015</td><td>逐层相关性反传</td><td>守恒律（conservation law）</td></tr>
+    <tr><td><strong>Shapley Regression Values</strong></td><td>2001</td><td>合作博弈的回归实现</td><td>特征联盟的线性建模</td></tr>
+    <tr><td><strong>Shapley Sampling Values</strong></td><td>2014</td><td>蒙特卡洛采样估计 Shapley 值</td><td>采样近似</td></tr>
+    <tr><td><strong>Quantitative Input Influence (QII)</strong></td><td>2016</td><td>输入扰动对输出的影响度量</td><td>概率测度</td></tr>
+  </table>
+
+  <p>Lundberg 和 Lee 的核心论证分两步：（1）首先证明 <strong>Shapley 值是唯一满足局部准确性、缺失性和一致性三个公理的加性特征归因方法</strong>（Theorem 1）；（2）然后证明上述六种方法在特定条件下均等价于对 Shapley 值的某种近似或对特定模型类别的精确计算。这意味着 <strong>SHAP 不是一个"新方法"，而是一个统一的理论框架</strong>——它将已有的分散方法收敛到共同的数学基础上，从而暴露了各方法的近似误差和适用边界。</p>
+
+  <div class="finding">
+    <strong>深层意义：</strong>在 SHAP 出现之前，XAI 领域处于"方法丛林"状态——每种方法有自己的定义、评估标准和适用场景，论文之间无法直接比较。SHAP 的统一定义终结了这一混乱局面，为整个领域提供了共同的数学语言。正如论文原文所说："The only possible consistent and locally accurate additive feature attribution method based on expectations is SHAP."
+  </div>
+</div>
+
+<!-- 2. SHAPLEY VALUE MATHEMATICS -->
+<div class="card">
+  <h2>2. Shapley 值的数学原理（含完整计算示例）</h2>
+
+  <h3>2.1 合作博弈的类比</h3>
+  <p>Shapley 值由 Lloyd Shapley 于 1953 年在合作博弈论中提出。其核心问题是：<strong>N 个玩家合作获得总收益，如何公平分配？</strong> 在 ML 解释场景中，将这一类比翻译为：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>玩家 = 特征 (features)</li>
+    <li>联盟 (coalition) = 特征子集 S</li>
+    <li>特征函数 v(S) = 模型在仅使用特征子集 S 时的预测输出</li>
+    <li>Shapley 值 = 每个特征对预测的公平贡献</li>
+  </ul>
+
+  <h3>2.2 Shapley 值公式</h3>
+  <p>特征 i 的 Shapley 值定义为它在所有可能的特征排序中<strong>边际贡献的加权平均</strong>：</p>
+
+  <pre>φ_i = Σ_{S ⊆ N \ {i}}  |S|! · (M - |S| - 1)! / M!  ·  [f_x(S ∪ {i}) - f_x(S)]</pre>
+
+  <p>各项解释：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>S ⊆ N \ {i}</strong>：不包含特征 i 的所有特征子集</li>
+    <li><strong>f_x(S)</strong>：模型在只使用特征集合 S 时的预测值（其他特征被"缺失"处理）</li>
+    <li><strong>f_x(S ∪ {i}) - f_x(S)</strong>：特征 i 加入联盟 S 后的边际贡献</li>
+    <li><strong>|S|! · (M - |S| - 1)! / M!</strong>：权重系数 — 这是所有 M! 种排列中该联盟恰好出现的概率</li>
+  </ul>
+
+  <h3>2.3 权重系数的直觉</h3>
+  <p>权重系数反映了"有多少种排序产生该联盟"。假设 M=3，考虑特征 2（income）加入空集 S=∅ 的权重：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>|S| = 0，权重 = 0! · (3-0-1)! / 3! = 1 · 2 / 6 = 2/6 = 1/3</li>
+    <li>这意味着在 6 种可能排序中，有 2 种排序使得 income 是<strong>第一个</strong>加入的特征</li>
+    <li>同理，|S|=1 时，权重 = 1! · 1! / 6 = 1/6</li>
+  </ul>
+  <p>关键直觉：<strong>Shapley 值对每个联盟大小赋予相等的总权重</strong>（|S|=0 合计 1/3，|S|=1 合计 1/3），因为每个"加入顺序"在均匀随机排序下等可能。</p>
+
+  <h3>2.4 完整手算示例：贷款审批模型</h3>
+
+  <div class="example-box">
+    <strong>场景：</strong>银行使用 3 个特征（年龄 Age, 收入 Income, 邮编 ZipCode）预测贷款审批概率。模型 f 的预测输出如下（为简化，忽略缺失值的期望输出）：
+
+    <table>
+      <tr><th>S (使用的特征)</th><th>f(S) — 审批概率</th></tr>
+      <tr><td>∅ (无特征)</td><td>0.50</td></tr>
+      <tr><td>{Age}</td><td>0.60</td></tr>
+      <tr><td>{Income}</td><td>0.55</td></tr>
+      <tr><td>{ZipCode}</td><td>0.52</td></tr>
+      <tr><td>{Age, Income}</td><td>0.75</td></tr>
+      <tr><td>{Age, ZipCode}</td><td>0.65</td></tr>
+      <tr><td>{Income, ZipCode}</td><td>0.58</td></tr>
+      <tr><td>{Age, Income, ZipCode}</td><td>0.80</td></tr>
+    </table>
+  </div>
+
+  <p><strong>计算 φ_Income（特征 Income 的 Shapley 值）：</strong></p>
+  <p>所有不包含 Income 的子集 S: ∅, {Age}, {ZipCode}, {Age, ZipCode}</p>
+
+  <table>
+    <tr><th>S</th><th>|S|</th><th>f(S ∪ {Income})</th><th>f(S)</th><th>边际贡献</th><th>权重</th><th>加权贡献</th></tr>
+    <tr><td>∅</td><td>0</td><td>0.55</td><td>0.50</td><td>+0.05</td><td>0!·2!/3! = 2/6 = 1/3</td><td>0.0167</td></tr>
+    <tr><td>{Age}</td><td>1</td><td>0.75</td><td>0.60</td><td>+0.15</td><td>1!·1!/3! = 1/6</td><td>0.0250</td></tr>
+    <tr><td>{ZipCode}</td><td>1</td><td>0.58</td><td>0.52</td><td>+0.06</td><td>1!·1!/3! = 1/6</td><td>0.0100</td></tr>
+    <tr><td>{Age, ZipCode}</td><td>2</td><td>0.80</td><td>0.65</td><td>+0.15</td><td>2!·0!/3! = 2/6 = 1/3</td><td>0.0500</td></tr>
+  </table>
+
+  <p><strong>φ_Income = 0.0167 + 0.0250 + 0.0100 + 0.0500 = 0.1017</strong></p>
+
+  <p>类似地计算 φ_Age 和 φ_ZipCode：</p>
+
+  <p><strong>计算 φ_Age（不包含 Age 的子集：∅, {Income}, {ZipCode}, {Income, ZipCode}）：</strong></p>
+  <table>
+    <tr><th>S</th><th>f(S ∪ {Age})</th><th>f(S)</th><th>边际</th><th>权重</th><th>加权</th></tr>
+    <tr><td>∅</td><td>0.60</td><td>0.50</td><td>+0.10</td><td>1/3</td><td>0.0333</td></tr>
+    <tr><td>{Income}</td><td>0.75</td><td>0.55</td><td>+0.20</td><td>1/6</td><td>0.0333</td></tr>
+    <tr><td>{ZipCode}</td><td>0.65</td><td>0.52</td><td>+0.13</td><td>1/6</td><td>0.0217</td></tr>
+    <tr><td>{Income, ZipCode}</td><td>0.80</td><td>0.58</td><td>+0.22</td><td>1/3</td><td>0.0733</td></tr>
+  </table>
+  <p><strong>φ_Age = 0.1616</strong></p>
+
+  <p><strong>计算 φ_ZipCode：</strong></p>
+  <table>
+    <tr><th>S</th><th>f(S ∪ {ZipCode})</th><th>f(S)</th><th>边际</th><th>权重</th><th>加权</th></tr>
+    <tr><td>∅</td><td>0.52</td><td>0.50</td><td>+0.02</td><td>1/3</td><td>0.0067</td></tr>
+    <tr><td>{Age}</td><td>0.65</td><td>0.60</td><td>+0.05</td><td>1/6</td><td>0.0083</td></tr>
+    <tr><td>{Income}</td><td>0.58</td><td>0.55</td><td>+0.03</td><td>1/6</td><td>0.0050</td></tr>
+    <tr><td>{Age, Income}</td><td>0.80</td><td>0.75</td><td>+0.05</td><td>1/3</td><td>0.0167</td></tr>
+  </table>
+  <p><strong>φ_ZipCode = 0.0367</strong></p>
+
+  <div class="finding">
+    <strong>验证（局部准确性公理）：</strong><br>
+    φ_Age + φ_Income + φ_ZipCode = 0.1616 + 0.1017 + 0.0367 = <strong>0.3000</strong><br>
+    f({Age, Income, ZipCode}) - f(∅) = 0.80 - 0.50 = <strong>0.3000</strong><br>
+    两者严格相等！这就是 Shapley 值的"效率性"（efficiency property）——总贡献之和等于总输出偏离。
+  </div>
+
+  <h3>2.5 计算复杂度的诅咒</h3>
+  <p>上述简单示例仅需评估 2³ = 8 个子集。但对于 M 个特征，需要评估 <strong>2^M</strong> 个子集。<strong>M=10 时需 1024 次模型调用，M=30 时超过 10 亿次</strong>——这就是 Kernel SHAP 需要采样近似的根本原因。</p>
+</div>
+
+<!-- 3. THREE AXIOMS -->
+<div class="card">
+  <h2>3. 三大公理：Shapley 值的唯一性证明</h2>
+
+  <p>SHAP 论文最漂亮的理论贡献是<strong>定理 1（Theorem 1）</strong>：在加性特征归因的框架下，<strong>只有 Shapley 值同时满足以下三个公理</strong>。换言之，如果你希望一个解释方法同时满足这三个性质，你的选择只能是 SHAP。</p>
+
+  <h3>公理 1：局部准确性 (Local Accuracy)</h3>
+  <pre>f(x) = φ_0 + Σ_{i=1}^{M} φ_i</pre>
+  <p>解释模型输出 = 基准值 (base value) + 所有特征贡献之和。这个性质确保了<strong>解释的完备性</strong>——解释之间没有遗漏或重叠的部分。它不是"近似"，而是<strong>精确的加性分解</strong>。此公理等价于 Shapley 值的效率性（efficiency）。</p>
+  <p><em>数学意义：</em>解释函数 g 在输入 x'（简化特征）上等于原模型 f 在输入 x 上的预测。这保证了 SHAP 解释不是一个"近似模型"，而是一个与原模型在待解释点上<strong>精确一致</strong>的表示。</p>
+
+  <h3>公理 2：缺失性 (Missingness)</h3>
+  <pre>如果 x'_i = 0（特征 i "缺失"），则 φ_i = 0</pre>
+  <p>这个公理看似平凡，实则关键——它定义了"缺失特征"的行为。如果一个特征在简化输入中被标记为"不存在"，那么它对解释的贡献必须为零。<strong>没有这一公理，就无法区分"特征值使得贡献为零"与"特征缺失"</strong>两种情况。</p>
+  <p><em>实际意义：</em>当我们对某个样本计算 SHAP 值时，如果一个特征的 SHAP 值为 0，我们可以确信两种情况之一：(a) 该特征确实不贡献任何信息，或 (b) 该特征缺失。Missingness 排除了第三种可能：(c) 该特征"存在但归因方法错误地将其忽略"。</p>
+
+  <h3>公理 3：一致性 (Consistency)</h3>
+  <pre>如果模型改变使得特征 i 对输出的影响更大（或不变），则 φ_i(f', x) ≥ φ_i(f, x)</pre>
+  <p>这是三个公理中<strong>最不直观但最强大</strong>的一个。假设我们有两个模型 f 和 f'，且对于所有不包含特征 i 的子集 S，都有：</p>
+  <pre>f'_x(S ∪ {i}) - f'_x(S) ≥ f_x(S ∪ {i}) - f_x(S)</pre>
+  <p>即在新模型 f' 中，特征 i 在每个子集上的边际贡献都更大。那么一致性要求：特征 i 在新模型中的归因值 <strong>不得小于</strong>在原模型中的归因值。这确保了归因方法<strong>与模型的变化方向一致</strong>——如果模型的改进让某个特征变"更重要"，解释方法必须如实反映这一点。</p>
+
+  <div class="highlight-box">
+    <strong>唯一性定理的威力：</strong>这三个公理看似温和，但 Lundberg 和 Lee 证明了它们是<strong>充分且必要</strong>的——任何满足这三条的加性归因方法必然等价于 Shapley 值。这为 SHAP 提供了无可辩驳的<strong>理论正当性</strong>：不是因为工程师觉得它好，而是因为数学证明了它是唯一解。
+  </div>
+
+  <p>对比而言：LIME 满足局部准确性，但违反一致性（因为 LIME 使用启发式加权核而非 Shapley 核）；DeepLIFT 在某些条件下满足缺失性，但其"参考值"定义下的归因不具有一致性保证；集成梯度（Integrated Gradients）满足完备性，但在路径选择上有任意性，不唯一。只有 SHAP 严格满足全部三条。</p>
+</div>
+
+<!-- 4. KERNEL SHAP -->
+<div class="card">
+  <h2>4. Kernel SHAP：定理 2 的核心证明</h2>
+
+  <p>Kernel SHAP 是论文中最重要的计算贡献：它将精确 Shapley 值的计算<strong>转化为加权线性回归问题</strong>，从而可以通过采样来近似。</p>
+
+  <h3>4.1 从 Shapley 值到加权线性回归</h3>
+  <p>定理 2 的陈述：假设有一个加性解释模型 g(z') = φ_0 + Σ φ_i · z'_i，其中 z' ∈ {0,1}^M 是简化特征向量（1=特征存在，0=特征缺失）。如果我们用以下损失函数拟合 g：</p>
+
+  <pre>L(f, g, π_x') = Σ_{z'} [f(h_x(z')) - g(z')]² · π_x'(z')</pre>
+
+  <p>并且核权重 π_x'(z') 定义为：</p>
+
+  <pre>π_x'(z') = (M - 1) / [C(M, |z'|) · |z'| · (M - |z'|)]</pre>
+
+  <p>其中 C(M, |z'|) 是二项式系数（M choose |z'|），<strong>则该加权最小二乘的解 φ_i 恰好等于 Shapley 值</strong>。</p>
+
+  <h3>4.2 SHAP 核的数学直觉</h3>
+  <p>为什么是这个核？观察 π_x'(z') 的行为：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>当 |z'| 接近 1 或接近 M-1 时</strong>（联盟很小或很大）：分母中的 |z'|·(M-|z'|) 很小 → π_x' 很大 → <strong>这些联盟被赋予高权重</strong></li>
+    <li><strong>当 |z'| 接近 M/2 时</strong>（联盟中等大小）：π_x' 最小 → <strong>中等联盟权重低</strong></li>
+    <li><strong>当 |z'| = 0 或 |z'| = M 时</strong>：π_x' = ∞ → 赋予<strong>无穷大权重</strong>，强制 g(0) = f(∅) 和 g(1) = f(全特征) 精确成立</li>
+  </ul>
+  <p>这种权重分配反映了 Shapley 值的本质：<strong>我们最关心的是每个特征"单独加入"时的效果（小联盟）和"从完整模型中移除"时的效果（大联盟），而不是联盟博弈中期的复杂交互</strong>。这与合作博弈的直觉完全一致——一个人的价值，在于他加入空队时的贡献和离开完整队时的损失。</p>
+
+  <h3>4.3 定理 2 的证明概要</h3>
+  <p>证明的核心是将加权最小二乘问题展开为 Shapley 值定义的形式。线性回归的解为 φ = (Z^T W Z)^{-1} Z^T W y，其中 Z 的每一行是 z' 向量，W 是以 π_x' 为对角元的权重矩阵。通过代入 SHAP 核的定义并展开矩阵运算，可以证明：</p>
+  <ol style="margin-left: 24px; margin-bottom: 12px;">
+    <li>核的设计使得每一对"互补联盟"（S 和 S ∪ {i}）的权重关系恰好对应 Shapley 值的组合系数</li>
+    <li>权重无穷大的 z'=0 和 z'=M 约束强制执行局部准确性</li>
+    <li>其余 z' 的加权回归精确复现了 Shapley 值中每个联盟大小的权重分布</li>
+  </ol>
+
+  <div class="finding">
+    <strong>实际影响：</strong>定理 2 的重要意义不在于它为精确 Shapley 值提供了另一种计算方式（反正都需 2^M 次评估），而在于它将 Shapley 估计问题转化为<strong>可以使用标准采样技术的回归问题</strong>。你只需要按照 SHAP 核的分布采样 z'，评估模型在这些简化输入上的输出，然后求解加权线性回归——这在计算上是高效率的。
+  </div>
+</div>
+
+<!-- 5. METHOD VARIANTS -->
+<div class="card">
+  <h2>5. SHAP 方法变体总览</h2>
+
+  <p>论文通过统一的理论框架导出了多种模型特定的高效实现。核心思路：对于特定模型类，Shapley 值的某些计算步骤可以解析求解或用高效的算法完成，无需穷举所有 2^M 个子集。</p>
+
+  <table>
+    <tr><th>变体</th><th>适用模型</th><th>关键技巧</th><th>计算复杂度</th><th>精确/近似</th></tr>
+    <tr>
+      <td><strong>Kernel SHAP</strong></td>
+      <td>任意模型（模型无关）</td>
+      <td>Shapley 核加权 + 采样回归</td>
+      <td>O(K · M · model_cost)<br>K 为采样数</td>
+      <td>近似（采样误差可控）</td>
+    </tr>
+    <tr>
+      <td><strong>Tree SHAP</strong></td>
+      <td>树模型（XGBoost, LightGBM, RandomForest）</td>
+      <td>树结构递推：在每个内部节点利用子节点覆盖比例计算局部 Shapley 值</td>
+      <td>O(T · L · D²)<br>T=树数, L=最大叶子数, D=最大深度</td>
+      <td><strong>精确</strong>（无采样）</td>
+    </tr>
+    <tr>
+      <td><strong>Deep SHAP</strong></td>
+      <td>深度神经网络</td>
+      <td>将 DeepLIFT 的反传规则与 SHAP 值对齐：DeepLIFT multipliers × 参考值差异 = SHAP 值</td>
+      <td>O(网络正向/反向传播)</td>
+      <td>近似（线性组合近似）</td>
+    </tr>
+    <tr>
+      <td><strong>Linear SHAP</strong></td>
+      <td>线性模型</td>
+      <td>解析解：φ_i = β_i · (x_i - E[X_i])</td>
+      <td>O(M)</td>
+      <td><strong>精确</strong></td>
+    </tr>
+  </table>
+
+  <h3>5.1 Tree SHAP 的核心思想</h3>
+  <p>Tree SHAP 是论文衍生出的最具实用价值的变体（于 2018 年扩展发表于 Nature Machine Intelligence）。其核心洞察是：对于树模型，Shapley 值的计算可以利用<strong>树结构的覆盖统计</strong>高效完成，无需对每个样本跑全部特征子集。具体而言：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>当一个样本通过决策树时，它只经过一条路径上的节点</li>
+    <li>对于路径上的每个分裂特征 i，其 Shapley 值可以从两个子节点覆盖的训练样本比例递推计算</li>
+    <li>算法自顶向下，在每个内部节点分配 Shapley 值给当前分裂特征和后续特征</li>
+  </ul>
+  <p>复杂度从 O(2^M) 降至 O(TL²D)，使得在数百维特征上的精确 Shapley 值计算成为现实——这是 SHAP 在工业界大规模应用的关键。</p>
+
+  <h3>5.2 Deep SHAP 的连接</h3>
+  <p>Deep SHAP 证明了一个重要联系：<strong>DeepLIFT 的 multipliers 实际上等于 SHAP 值的某种线性化近似</strong>。具体而言，如果网络在输入附近是近似线性的，DeepLIFT 的"规则反传"等价于计算每个神经元对输出的 Shapley 值。这一连接为深度网络的快速 SHAP 近似提供了理论基础。</p>
+</div>
+
+<!-- 6. EXPERIMENTAL RESULTS -->
+<div class="card">
+  <h2>6. 实验验证</h2>
+
+  <h3>6.1 统计保真度：方差对比</h3>
+  <p>论文的核心实验比较了三种基于采样的方法——<strong>Kernel SHAP、Shapley Sampling、LIME</strong>——在相同模型评估次数下的解释质量。评价指标：解释值 φ_i 与精确 Shapley 值之间的误差。</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>Kernel SHAP 在相同评估次数下，方差显著低于 Shapley Sampling 和 LIME。</strong>在 1000 次模型评估时，Kernel SHAP 的误差已降至接近 0，而 Shapley Sampling 和 LIME 仍有显著偏差。</li>
+    <li>原因：SHAP 核的权重设计使采样集中在"信息量大"的联盟上（靠近全特征和空特征的边界），而均匀采样（Shapley Sampling）或启发式核（LIME）浪费了大量评估在中部联盟上。</li>
+  </ul>
+
+  <h3>6.2 人类评估：解释偏好</h3>
+  <p>论文进行了严谨的 <strong>human-in-the-loop 实验</strong>：向参与者展示三种方法（SHAP, DeepLIFT, LIME）对同一模型同一预测的解释，要求选择"最好地揭示了影响预测的关键特征"的方法。结果：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>SHAP > LIME（在 86% 的比较中胜出）</li>
+    <li>SHAP > DeepLIFT（在 79% 的比较中胜出）</li>
+    <li>参与者表示 SHAP 解释"更一致"和"更容易理解"</li>
+  </ul>
+
+  <h3>6.3 可视化方法体系</h3>
+  <p>论文贡献了四种关键的可视化技术（通过 shap Python 库实现）：</p>
+
+  <table>
+    <tr><th>可视化</th><th>用途</th><th>特点</th></tr>
+    <tr><td><strong>Force Plot</strong></td><td>单样本逐一展示每个特征如何"推高"或"拉低"预测</td><td>由基准值出发，红色特征向右推（增加输出），蓝色向左推（减少输出），最终到达预测值</td></tr>
+    <tr><td><strong>Summary Plot</strong></td><td>全局视角：所有样本的所有特征重要性</td><td>每个点是一个样本，颜色表示特征值高低，横轴为 SHAP 值。一眼看出哪个特征最重要、高/低值分别促进或抑制预测</td></tr>
+    <tr><td><strong>Dependence Plot</strong></td><td>单个特征的 SHAP 值随其特征值的变化</td><td>揭示非线性效应（如 U 型关系）和特征交互（颜色编码交互特征）</td></tr>
+    <tr><td><strong>Waterfall Plot</strong></td><td>单样本贡献分解（升序/降序排列）</td><td>类似 Force Plot 但以垂直瀑布形式，适合打印和报告</td></tr>
+  </table>
+</div>
+
+<!-- 7. LIMITATIONS -->
+<div class="card">
+  <h2>7. 局限性与批判</h2>
+
+  <h3>7.1 计算成本</h3>
+  <p><strong>Kernel SHAP 对特征数量呈指数复杂度。</strong>虽然采样缓解了这一问题（通常用 200~2000 次模型评估近似），但对于高维数据（M > 100），采样效率快速下降。在实际应用中，特征数超过 50 时，Kernel SHAP 的收敛速度已明显不足。Tree SHAP 部分解决了树模型的这一问题，但对于深度网络仍缺乏精确算法。</p>
+
+  <h3>7.2 特征独立性假设</h3>
+  <p>这是 <strong>SHAP 最根本的局限性</strong>。Shapley 值在计算 f(S) 时需要一个"将缺失特征填充为合理值"的机制。SHAP 使用条件期望 E[f(X) | X_S = x_S]，但这引入了特征独立性的隐含假设。当特征之间存在强相关性时（这也是现实世界数据的常态），填充的值可能对应于<strong>不存在的样本</strong>（off-manifold 问题），导致 Shapley 值偏离真实的特征贡献。</p>
+  <p>后续工作（如 Conditional SHAP、Causal SHAP、On-Manifold SHAP）尝试解决这一问题，但代价是更高的计算复杂度或需要额外的因果结构知识。</p>
+
+  <h3>7.3 对抗脆弱性</h3>
+  <p>Slack et al. (2020) 证明：攻击者可以构造一个<strong>支架模型（scaffolding model）</strong>，在对输入空间的绝大部分区域行为与原始模型一致，但在 SHAP 采样点附近输出不同的预测——从而操纵 SHAP 解释，使有偏见的模型看起来公平。这意味着 SHAP 解释本身也可以被<strong>对抗攻击</strong>，在安全关键场景中需要谨慎。</p>
+
+  <h3>7.4 序列/结构化数据的适配</h3>
+  <p>原始 SHAP 框架假设特征是可独立移除的——这对表格数据是自然的，但对于 NLP 文本、时间序列、图数据等结构化数据，无法简单地"移除"一个 token 或时间步而不破坏数据结构。这正是后续工作 TransSHAP、GNNExplainer 等要解决的问题。</p>
+</div>
+
+<!-- 8. IMPACT -->
+<div class="card">
+  <h2>8. 影响力与遗产</h2>
+
+  <h3>8.1 产业应用</h3>
+  <p><strong>shap Python 库</strong> 已成为 XAI 领域的实际标准工具。GitHub 上超过 <strong>22,000 颗星</strong>，月下载量超过 <strong>1000 万次</strong>（PyPI）。在金融风控、医疗诊断、保险定价、信贷审批等受监管行业，SHAP 是监管机构认可的模型可解释性方法之一。</p>
+
+  <h3>8.2 学术影响</h3>
+  <p>SHAP 论文（NeurIPS 2017）已被引用超过 <strong>10,000 次</strong>（Google Scholar, 截至 2025 年），衍生工作包括：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>Tree SHAP</strong> (Lundberg et al., Nature Machine Intelligence 2020)：树模型的精确 SHAP 计算</li>
+    <li><strong>Kernel SHAP 优化</strong>：FastSHAP (Jethani et al., 2022) 使用摊销网络加速 Kernel SHAP</li>
+    <li><strong>结构化 SHAP</strong>：TransSHAP (NLP)、GNNExplainer (图)、TimeSHAP (时间序列)</li>
+    <li><strong>可解释性的鲁棒性</strong>：Slack et al. (2020) 的对抗攻击，推动了 "fooling SHAP" 研究方向</li>
+    <li><strong>分层解释</strong>：O-Shap (Owen 值) 将 Shapley 值扩展到层次化特征组</li>
+  </ul>
+
+  <h3>8.3 在网络安全中的应用</h3>
+  <p>在网络安全 ML 领域，SHAP 的应用尤其重要：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>xNIDS</strong> (USENIX Security 2023)：将 SHAP 应用于深度网络入侵检测系统，不仅解释单个告警，还自动生成防御规则</li>
+    <li><strong>DeepAID</strong> (CCS 2021)：使用 Deep SHAP 解释无监督异常检测模型（AutoEncoder 类），帮助安全分析师理解流量异常定位</li>
+    <li><strong>流量预训练模型解释</strong>：ET-BERT 等 Transformer 流量模型可通过 TransSHAP 适配获得 token 级别的解释</li>
+  </ul>
+
+  <div class="finding">
+    <strong>SHAP 在安全领域的独特价值：</strong>安全运维中心 (SOC) 不仅需要"检测到了攻击"，还需要"为什么这是攻击"——SHAP 的特征归因提供了直接的"证据链"：哪些流量特征（端口、包长序列、协议标志等）促使模型判定为恶意。这种可追溯性对于安全分析师作出响应决策和满足合规审计要求至关重要。
+  </div>
+</div>
+
+</div>
+</body>
+</html>

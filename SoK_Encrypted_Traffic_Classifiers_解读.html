@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoK: Encrypted Traffic Classifiers — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #c0392b; --accent2: #27ae60; --accent3: #2980b9; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; background: #2980b9; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent3); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  .card p { margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent3); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent3); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .guideline-box { background: #f0f4f8; border-left: 4px solid var(--accent3); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 13px; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent3); }
+  .flow .arrow { font-size: 16px; color: var(--accent3); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .stat-box { background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-box .num { font-size: 24px; font-weight: 800; color: var(--accent); }
+  .stat-box .num.green { color: var(--accent2); }
+  .stat-box .num.blue { color: var(--accent3); }
+  .stat-box .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent3); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  .snag-box { background: linear-gradient(135deg, #fff5f5, #ffeaea); border-left: 6px solid var(--accent); padding: 20px 24px; border-radius: 0 10px 10px 0; margin: 20px 0; }
+  .snag-box h3 { color: var(--accent); margin-top: 0; }
+  .takeaway-box { background: #eaf2f8; border-left: 4px solid var(--accent3); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13px; font-weight: 600; }
+  ul { margin: 8px 0 8px 20px; }
+  ul li { margin: 4px 0; }
+  ol { margin: 8px 0 8px 20px; }
+  ol li { margin: 4px 0; }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag">Systematization of Knowledge</span>
+  <h1>SoK: Decoding the Enigma of<br>Encrypted Network Traffic Classifiers</h1>
+  <div class="subtitle">
+    IEEE S&P 2025 对 18 项加密流量分类研究的系统性审计：过时数据集、设计选择疏忽、未经证实的假设——348 次特征掩码实验揭露 95-99% 准确率的真相。
+  </div>
+  <div class="meta">
+    <span>📄 IEEE Symposium on Security and Privacy (S&P) 2025</span>
+    <span>👤 Nimesha Wickramasinghe, Arash Shaghaghi, Gene Tsudik, Sanjay Jha</span>
+    <span>🏛 UNSW Sydney & UC Irvine</span>
+    <span>🔗 cspectrum.web.cse.unsw.edu.au</span>
+  </div>
+</div>
+
+<!-- 1. 研究动机 -->
+<div class="card">
+  <h2>1. 研究动机与核心问题</h2>
+
+  <h3>1.1 什么是 SoK？</h3>
+  <p>SoK（Systematization of Knowledge）是安全领域顶级会议中一种特殊的论文类型：它不提出新方法，而是对现有研究进行系统性分类、审计和批判。这篇 SoK 聚焦于<strong>raw-information-based encrypted traffic classification</strong>——使用原始网络流量数据（包载荷和包头字节）的加密流量分类研究，涵盖 2015-2024 年的 18 项代表性工作。</p>
+
+  <h3>1.2 核心研究问题</h3>
+  <div class="finding">
+    <strong>The Central Question：</strong><br>
+    文献中广泛报告的 95-99% 加密流量分类准确率，究竟是来自<strong>对加密流量模式的真正理解</strong>，还是来自<strong>方法论缺陷</strong>（过时数据集、设计选择疏忽、未经证实的假设）？
+  </div>
+
+  <p>SoK 论文将这些问题系统化为<strong>三大陷阱（Three Snags）</strong>：</p>
+  <ol>
+    <li><strong>Snag 1：过时数据集</strong>——大多数研究依赖 2018 年前收集的数据集，这些数据集包含大量非加密流量和已废弃的密码套件</li>
+    <li><strong>Snag 2：设计选择疏忽</strong>——三类过拟合（数据泄露过拟合、上下文过拟合、时间过拟合）被系统性忽略</li>
+    <li><strong>Snag 3：未经证实的假设</strong>——"加密载荷中存在可学习模式"、"加密载荷单独足够分类"、"truncation/padding 不影响性能"等假设缺乏实证支持</li>
+  </ol>
+
+  <h3>1.3 研究范围</h3>
+  <p>论文限定于<strong>raw-information-based NTC</strong>（直接从网络流量中提取原始信息的分类器），排除侧信道方法和多模态方法。论文的论点是：对原始数据的透彻理解是 NTC 的基础——如果原始信息的使用方式就有问题，那么更复杂的方法只会把问题放大。</p>
+</div>
+
+<!-- 2. NTC 设计选择分类体系 -->
+<div class="card">
+  <h2>2. NTC 设计选择分类体系（Taxonomy）</h2>
+
+  <p>SoK 论文建立了一个四维分类体系来系统化分析 18 项 NTC 研究的设计选择：</p>
+
+  <h3>2.1 Dimension 1: Traffic Granularity（流量粒度）</h3>
+  <table>
+    <tr><th>粒度</th><th>定义</th><th>代表性工作</th></tr>
+    <tr><td><strong>Packet</strong></td><td>以单个数据包为分类单元。最细粒度。</td><td>ET-BERT (packet mode), PERT, CBD</td></tr>
+    <tr><td><strong>Burst</strong></td><td>在短时间窗口内连续发送的包簇（同一方向）。</td><td>netFound (burst selection)</td></tr>
+    <tr><td><strong>Flow</strong></td><td>同五元组的单向包序列。</td><td>netFound, NetMamba, YaTC</td></tr>
+    <tr><td><strong>Session (Bi-Flow)</strong></td><td>两个端点之间的双向通信，合并 A→B 和 B→A 的流。</td><td>ET-BERT (flow mode)</td></tr>
+  </table>
+
+  <h3>2.2 Dimension 2: Data Extraction Strategy（数据提取策略）</h3>
+  <table>
+    <tr><th>策略</th><th>描述</th><th>形式化</th></tr>
+    <tr><td><strong>Type 1</strong></td><td>从选定粒度中提取前 m 字节（连续数据流）</td><td>First <em>m</em> Bytes</td></tr>
+    <tr><td><strong>Type 2</strong></td><td>从 n 个包中共提取前 m 字节（跨包拼接）</td><td>First <em>m</em> Bytes of <em>n</em> Packets</td></tr>
+    <tr><td><strong>Type 3</strong></td><td>从每个包各提取前 m 字节，共 n 个包 → m×n 字节</td><td>First <em>m</em> Bytes Per Packet of <em>n</em> Packets</td></tr>
+  </table>
+
+  <p>对于 Type 2 和 Type 3，还需选择 n 个包的选取方式：</p>
+  <ul>
+    <li><strong>First n Packets：</strong>选粒度的前 n 个包（假设握手阶段包含关键信息）</li>
+    <li><strong>Any Consecutive n Packets：</strong>任意连续的 n 个包（增加灵活性，但引入上下文过拟合风险——见 Snag 2）</li>
+  </ul>
+
+  <h3>2.3 Dimension 3: Raw Features（原始特征）</h3>
+  <table>
+    <tr><th>层级</th><th>内容</th><th>加密影响</th></tr>
+    <tr><td><strong>L2 (Ethernet)</strong></td><td>源/目的 MAC 地址</td><td>不受加密影响（本地网络层）</td></tr>
+    <tr><td><strong>L3 (Network)</strong></td><td>源/目的 IP 地址、IP ID、Checksum、TTL</td><td>不受加密影响（路由层）</td></tr>
+    <tr><td><strong>L4 (Transport)</strong></td><td>源/目的端口、TCP SeqNo/AckNo、Window Size、Timestamp</td><td>不受加密影响（传输层头部明文）</td></tr>
+    <tr><td><strong>L7 (Application)</strong></td><td>应用层载荷（在加密流量中是密文）</td><td><strong>完全加密——TLS 1.3 AEAD</strong></td></tr>
+  </table>
+
+  <h3>2.4 Dimension 4: SII Usage（强身份信息使用）</h3>
+  <p><strong>Strong Identification Information (SII)</strong> 指能够直接识别用户、设备或应用的特征：</p>
+  <ul>
+    <li><strong>L2：</strong>MAC 地址（网络接口的唯一标识符）</li>
+    <li><strong>L3：</strong>IP 地址（网络设备的数字标签）</li>
+    <li><strong>L4：</strong>协议端口（应用/服务的数字标识符）</li>
+  </ul>
+  <p>使用 SII 的模型面临<strong>数据泄露过拟合</strong>风险——模型可能记住特定的 IP-应用或端口-应用映射，而不是学习流量特征。SoK 的 Table 1 显示：18 项研究中有部分明确使用带 SII 的特征（以实心标记），另一部分则对 SII 做了匿名化处理（以 # 标记）——但<strong>没有一项研究</strong>对会话特定的上下文/时间特征进行掩码处理。</p>
+
+  <h3>2.5 18 项研究的完整画像</h3>
+  <p>SoK 的 Table 1 对 18 项研究（2015-2024）进行了全面的设计选择审计。关键发现：</p>
+  <ul>
+    <li><strong>最常用的数据集：</strong>ISCX-VPN 2016（11 项使用）、USTC-TFC 2016（8 项）、ISCX-Tor 2016（5 项）、Cross-Platform 2017（3 项）——<strong>全部在 2018 年之前收集</strong></li>
+    <li><strong>最常用的粒度：</strong>Flow（主导），Packet 次之</li>
+    <li><strong>最常用的提取策略：</strong>Type 1（First m bytes）占主导，m 范围从 764 到 3072 字节</li>
+    <li><strong>所有研究都使用 L7（加密载荷）</strong>——但对其可用性的假设各不相同</li>
+  </ul>
+</div>
+
+<!-- 3. 三大陷阱 -->
+<div class="card">
+  <h2>3. 三大陷阱（Three Snags）—— 详细分析</h2>
+
+  <h3>Snag 1：过时数据集（Legacy Datasets）</h3>
+
+  <div class="snag-box">
+    <h3>核心发现：最广泛使用的公开数据集包含 70-99% 的非加密流量</h3>
+    <p>SoK 使用 Tshark 对 5 个主流公开数据集进行了系统性审计（Algorithm 1），分析每个会话（session）的加密状态和密码套件分布。结果令人震惊。</p>
+  </div>
+
+  <h4>3.1.1 加密使用情况分析（S1-RQ1）</h4>
+  <table>
+    <tr><th>数据集</th><th>总会话数</th><th>未加密比例</th><th>加密比例</th><th>实际情况</th></tr>
+    <tr><td><strong>ISCX-VPN 2016</strong></td><td>~310K</td><td><strong>98.9%</strong></td><td>1.1%</td><td>号称 VPN 数据集，但几乎全是明文</td></tr>
+    <tr><td><strong>USTC-TFC 2016</strong></td><td>~539K</td><td><strong>94.7%</strong></td><td>5.3%</td><td>恶意/良性流量数据集，绝大多数未加密</td></tr>
+    <tr><td><strong>ISCX-Tor 2016</strong></td><td>~59K</td><td><strong>89.3%</strong></td><td>10.7%</td><td>Tor 数据集——竟然有 89% 非 Tor 加密</td></tr>
+    <tr><td><strong>Cross-Platform 2017</strong></td><td>~103K</td><td><strong>69.7%</strong></td><td>30.3%</td><td>移动应用数据集——大量明文流量</td></tr>
+    <tr><td><strong>CSTNET-TLS 1.3</strong></td><td>~36K</td><td><strong>0%</strong></td><td><strong>100%</strong></td><td>唯一全部加密的数据集，全部使用现代 AEAD</td></tr>
+  </table>
+
+  <div class="critique-box">
+    <strong>这意味着什么？</strong><br>
+    在 ISCX-VPN 2016 上"分类加密 VPN 流量"并达到 98% 准确率的模型，实际上<strong>98.9% 的训练和测试数据是未加密的</strong>。模型学到的是未加密流量的模式，而不是加密流量的模式。这与 Google Transparency Report（2024 年 10 月 &gt;93% 的 Chrome 页面加载使用 SSL/TLS）的现实完全脱节。
+  </div>
+
+  <h4>3.1.2 密码套件分布分析（S1-RQ2）</h4>
+  <table>
+    <tr><th>数据集</th><th>主要密码套件</th><th>安全性状态</th></tr>
+    <tr><td>ISCX-VPN 2016</td><td>AES-128-CBC, AES-256-CBC, <strong>RC4-128, 3DES</strong></td><td><strong>RC4 和 3DES 已废弃</strong></td></tr>
+    <tr><td>ISCX-Tor 2016</td><td>AES-128-CBC, AES-256-CBC, 3DES</td><td><strong>3DES 已废弃</strong></td></tr>
+    <tr><td>USTC-TFC 2016</td><td>AES-128-CBC（占 94.1% 的加密会话）</td><td>CBC 模式在 TLS 1.3 中已移除</td></tr>
+    <tr><td>CSTNET-TLS 1.3</td><td>AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305</td><td>全部是现代 AEAD</td></tr>
+  </table>
+
+  <p>关键缺口：<strong>ChaCha20-Poly1305 在所有数据集中严重不足</strong>——尽管它是 OpenSSH、WireGuard、OTRv4 等多个现代安全协议的默认 AEAD，也是 TLS 1.3 的推荐密码套件之一。</p>
+
+  <div class="takeaway-box">
+    Takeaway 1: 大多数公开数据集的绝大部分流量是<strong>未加密的</strong>。<br>
+    Takeaway 2: 广泛使用的数据集包含使用<strong>已废弃的、存在已知漏洞的密码套件</strong>加密的会话。<br>
+    Takeaway 3: 尽管 ChaCha20-Poly1305 等安全密码套件采用率正在增长，它们在公开数据集中<strong>严重不足</strong>。<br>
+    Takeaway 4: 鉴于 TLS 1.3 和 QUIC 的广泛采用，公开数据集需要<strong>严格评估和更新</strong>以反映当代网络条件。
+  </div>
+
+
+  <h3>Snag 2：设计选择疏忽 —— 三类过拟合</h3>
+
+  <p>SoK 识别出三种不同的过拟合类型，每一种都源于设计选择的疏忽。关键创新在于<strong>从 RFC 规范的层面</strong>精确论证为什么某些特征不应该被用于分类。</p>
+
+  <h4>3.2.1 数据泄露过拟合（Data Leakage Overfitting）</h4>
+  <p><strong>定义：</strong>模型从不应在推理时使用的特征中学习。主要包括：</p>
+
+  <div class="grid-2">
+    <div class="critique-box">
+      <strong>SII（强身份信息）泄露</strong><br>
+      MAC 地址、IP 地址、协议端口直接标识特定的设备、主机或应用。使用 SII 的模型实质上<strong>在记忆</strong>"这个 IP = 那个应用"，而不是学习流量模式。<br><br>
+      <em>实验证据：</em>当 SII 被匿名化（D1 occlusion），ET-BERT 准确率从 0.96 降至 0.51（↓0.45），YaTC 从 0.90 降至 0.62（↓0.28）。
+    </div>
+    <div class="critique-box">
+      <strong>SNI 泄露</strong><br>
+      当数据提取策略选取的字节数 m &gt; 700 时，TLS ClientHello 中的 SNI 字段被包含在内。SNI 直接暴露了目标主机名，是完美的分类标签。<br><br>
+      <em>实验证据：</em>在 D1 基础上进一步模糊 SNI（D2 occlusion），YaTC 准确率从 0.44 降至 0.38（↓0.06）。影响相对较小是因 SNI 在不同 TLS 实现中的位置不一致（Firefox vs Chromium）。
+    </div>
+  </div>
+
+  <h4>3.2.2 上下文过拟合（Contextual Overfitting）</h4>
+  <p><strong>定义：</strong>源于同一 TCP/UDP 会话拆分到多个训练/测试样本时，模型利用<strong>会话特定的协议字段</strong>（它们是伪随机初始化的，不应具有分类能力）作为 shortcut。</p>
+
+  <table>
+    <tr><th>特征</th><th>RFC 依据</th><th>为什么不应作为分类特征</th></tr>
+    <tr><td><strong>IP Identification (IP ID)</strong></td><td>RFC 791, RFC 6864, RFC 6274</td><td>每个会话用伪随机数生成器初始化，每个包递增。同一会话内高位保持一致。</td></tr>
+    <tr><td><strong>IP Header Checksum</strong></td><td>RFC 791</td><td>16-bit one's complement。由于 IP ID 和 Total Length 等的微小变化，相邻包的 checksum 值相近。</td></tr>
+    <tr><td><strong>TCP SeqNo / AckNo</strong></td><td>RFC 9293</td><td>每个会话用伪随机函数初始化，随数据传输递增。高位在会话内保持一致。</td></tr>
+  </table>
+
+  <div class="example-box">
+    <strong>具体场景：</strong>一个流有 100 个包——前 50 个进入训练集，后 50 个进入测试集（或 per-packet split 的随机分配）。训练集中的包的 IP ID 为 [0x5A3B, 0x5A3C, 0x5A3D, ...]，测试集中的为 [0x5A8E, 0x5A8F, ...]。高序位 0x5A__ 是一致的——模型学会了："高位 0x5A = 是这个流 = 是这个类"，实质上在匹配<strong>隐性会话 ID</strong>。
+  </div>
+
+  <p><strong>C occlusion 实验结果：</strong>随机化 IP ID、IP Checksum、TCP SeqNo/AckNo 后，ET-BERT 准确率从 0.63 降至 0.57（↓0.06），YaTC 从 0.60 降至 0.55（↓0.05）。这个相对温和的下降反映了 C occlusion 只应用于受影响的粒度/策略组合——但在特定配置下，下降幅度要大得多。</p>
+
+  <h4>3.2.3 时间过拟合（Temporal Overfitting）</h4>
+  <p><strong>定义：</strong>模型利用随时间变化的特征（受网络拥塞、缓冲区可用性等动态条件影响）作为分类信号，导致无法泛化到不同的网络环境。</p>
+
+  <table>
+    <tr><th>特征</th><th>RFC 依据</th><th>为什么不应作为分类特征</th></tr>
+    <tr><td><strong>TCP Timestamp (TSval / TSecr)</strong></td><td>RFC 1323, RFC 7323</td><td>32-bit 时间戳值。同一会话内的包在短时间内发送，TSval 和 TSecr 的高位保持一致。</td></tr>
+    <tr><td><strong>TCP Window Size</strong></td><td>RFC 7323, RFC 9438</td><td>受接收缓冲区大小、网络拥塞级别、BDP、路径 MTU 等多因素影响——这些都是<strong>与流量类别无关的瞬态网络条件</strong>。</td></tr>
+  </table>
+
+  <p><strong>T occlusion 实验结果：</strong>随机化 TCP Timestamp 和 Window Size 后，ET-BERT 降至 0.57（↓0.06），YaTC 降至 0.56（↓0.04）。</p>
+
+  <h4>3.2.4 综合影响：CTD Occlusion</h4>
+  <p>当 <strong>所有</strong> 过拟合相关特征（SII + SNI + 上下文 + 时间）被同时随机化/移除（CTD occlusion）时：</p>
+  <ul>
+    <li>ET-BERT 使用其<strong>原始推荐的预处理方式</strong>从 0.91 降至 <strong>0.59</strong>（↓0.32）</li>
+    <li>YaTC 使用其<strong>原始推荐的预处理方式</strong>从 0.93 降至 <strong>0.68</strong>（↓0.25）</li>
+  </ul>
+  <p>这揭示了：在原论文声称的 &gt;90% 准确率中，<strong>至少 25-32 个百分点来自各类过拟合产生的虚假信号</strong>。</p>
+
+  <h4>3.2.5 过拟合总结表（来自 Table 2）</h4>
+  <table>
+    <tr><th>特征</th><th>过拟合类型</th><th>影响的粒度</th></tr>
+    <tr><td>Src/Dst MAC 地址</td><td>数据泄露（DL）</td><td>所有粒度</td></tr>
+    <tr><td>Src/Dst IP 地址</td><td>数据泄露（DL）</td><td>所有粒度</td></tr>
+    <tr><td>Src/Dst 端口</td><td>数据泄露（DL）</td><td>所有粒度</td></tr>
+    <tr><td>IP ID</td><td>上下文（C）</td><td>Packet, Burst, Flow/Session (T2任意/T3任意)</td></tr>
+    <tr><td>IP Header Checksum</td><td>上下文（C）</td><td>Packet, Burst, Flow/Session (T2任意/T3任意)</td></tr>
+    <tr><td>TCP SeqNo / AckNo</td><td>上下文（C）</td><td>Packet, Burst, Flow/Session (T2任意/T3任意)</td></tr>
+    <tr><td>TCP Window Size</td><td>时间（T）</td><td>Packet, Burst, Flow/Session (T2任意/T3任意)</td></tr>
+    <tr><td>TCP Timestamp (TSval/TSecr)</td><td>时间（T）</td><td>Packet, Burst, Flow/Session (T2任意/T3任意)</td></tr>
+    <tr><td>TLS SNI</td><td>数据泄露（DL）</td><td>Flow/Session (T1, T2首n, T3首n)</td></tr>
+  </table>
+
+
+  <h3>Snag 3：未经证实的假设（Unsubstantiated Assumptions）</h3>
+
+  <h4>3.3.1 假设 1：加密载荷中存在可学习的模式</h4>
+  <div class="critique-box">
+    <strong>文献中的声称：</strong>多个研究（ET-BERT, Flow-MAE, CBD, YaTC 等）声称或暗示加密载荷中包含由于"加密算法的不完美随机性"而产生的可学习模式。<br><br>
+    <strong>密码学事实：</strong>TLS 1.3 使用 AEAD 密码（AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305）+ 唯一 IV。相同的明文在不同连接中产生<strong>完全不同</strong>的密文。密文在计算上与随机比特流不可区分（IND-CPA 安全性）。<br><br>
+    <strong>实验证据：</strong>E1/E2/E3 occlusion 实验——72 次实验覆盖 ET-BERT 和 YaTC。
+  </div>
+
+  <!-- E1/E2/E3 occlusion result -->
+  <table>
+    <tr><th>Occlusion</th><th>含义</th><th>ET-BERT 平均准确率</th><th>YaTC 平均准确率</th></tr>
+    <tr><td><strong>E1</strong></td><td>仅加密载荷（去除所有包头）</td><td><strong>0.12</strong></td><td><strong>0.30</strong></td></tr>
+    <tr><td><strong>E2</strong></td><td>将加密载荷替换为 0xFF（仅保留长度）</td><td><strong>0.12</strong></td><td><strong>0.39 ↑</strong></td></tr>
+    <tr><td><strong>E3</strong></td><td>将加密载荷替换为伪随机值（完美随机性）</td><td><strong>0.12</strong></td><td><strong>0.30</strong></td></tr>
+  </table>
+
+  <p><strong>关键发现：</strong></p>
+  <ul>
+    <li>ET-BERT 在所有 E1/E2/E3 条件下准确率恒定 = 0.12——说明它<strong>完全不依赖</strong>加密载荷的任何属性</li>
+    <li>YaTC 在 E2（仅保留长度）下准确率<strong>反而上升</strong>（0.30→0.39），说明：(a) 加密的随机性实际上<strong>引入了噪声</strong>，(b) 去除噪声后模型可以更好地利用<strong>载荷长度变化</strong>来分类</li>
+    <li>E2→E3（用伪随机替换）后 YaTC 回落至 0.30——进一步证实长度是唯一的学习信号</li>
+  </ul>
+
+  <div class="verdict-box" style="background: linear-gradient(135deg, #fff5f5, #ffeaea); border-left: 6px solid var(--accent); padding: 20px 24px; border-radius: 0 10px 10px 0; margin: 20px 0;">
+    <h3 style="color: var(--accent); margin-top: 0;">对假设 1 的裁决：证伪</h3>
+    <p>最先进的分类器<strong>没有从加密载荷中学习到任何固有模式（除了其长度）</strong>。这与 TLS 1.3 的安全性保证完全一致——"the only observable characteristic in encrypted payloads is their length" (RFC 8446)。之前感知到的"模式"很可能是过时数据集中未加密数据的产物。</p>
+  </div>
+
+  <h4>3.3.2 假设 2：加密载荷单独足够进行分类（S3-RQ2）</h4>
+  <p>通过对比 E1（仅加密载荷）、H1（仅包头）和 D1（匿名化 SII 的基线）实验结果：</p>
+  <ul>
+    <li>ET-BERT：D1 = 0.63, H1 = 0.63（与 D1 完全相同），E1 = 0.12（↓0.51）</li>
+    <li>YaTC：D1 = 0.60, H1 = 0.57（↓0.03），E1 = 0.30（↓0.30）</li>
+  </ul>
+  <p><strong>结论：</strong>加密载荷单独提供的信息极少，不足以支撑准确分类。ET-BERT 的分类<strong>完全基于包头信息</strong>。YaTC 主要依赖包头，但也能利用载荷长度信息（因其 Matrix Flow Representation 保留了按包边界的结构）。</p>
+
+  <h4>3.3.3 假设 3：Truncation/Padding 不影响性能（S3-RQ3）</h4>
+  <p>通过截断和填充实验（ˆE2：截断 25%，ˆˆE2：截断 50%），发现在仅保留载荷长度的条件下：</p>
+  <ul>
+    <li>YaTC：从 E2 的 0.39 降至 ˆE2 的 0.35 和 ˆˆE2 的 0.31——说明它<strong>依赖载荷长度</strong>来分类</li>
+    <li>ET-BERT：准确率不变——再次证明其<strong>完全不利用</strong>载荷长度（因其 token sequence 表示不保留包边界）</li>
+  </ul>
+</div>
+
+<!-- 4. CipherSpectrum -->
+<div class="card">
+  <h2>4. CipherSpectrum：为 TLS 1.3 时代设计的现代数据集</h2>
+
+  <h3>4.1 设计动机</h3>
+  <p>基于对现有数据集的全面审计（Snag 1），SoK 团队构建了 CipherSpectrum——一个专门为支持 <strong>cipher-agnostic NTC</strong>（密码套件无关的网络流量分类）而设计的新数据集。</p>
+
+  <h3>4.2 数据集组成</h3>
+  <table>
+    <tr><th>属性</th><th>规格</th></tr>
+    <tr><td><strong>类别数</strong></td><td>40 个不同域名</td></tr>
+    <tr><td><strong>密码套件</strong></td><td>TLS 1.3 的三个强制/推荐密码套件：<br>TLS-AES-128-GCM-SHA256<br>TLS-AES-256-GCM-SHA384<br>TLS-CHACHA20-POLY1305-SHA256</td></tr>
+    <tr><td><strong>每类每套件的会话数</strong></td><td>1,000 TCP/UDP 会话</td></tr>
+    <tr><td><strong>总会话数</strong></td><td><strong>120,000</strong> 会话（40 类 × 3 套件 × 1,000 会话）</td></tr>
+    <tr><td><strong>协议</strong></td><td>TCP 和 UDP</td></tr>
+    <tr><td><strong>公开可用</strong></td><td>cspectrum.web.cse.unsw.edu.au</td></tr>
+  </table>
+
+  <div class="example-box">
+    <strong>均匀性设计：</strong>以 example.com 为例，CipherSpectrum 包含：<br>
+    - 1,000 个使用 TLS-AES-128-GCM-SHA256 的会话<br>
+    - 1,000 个使用 TLS-AES-256-GCM-SHA384 的会话<br>
+    - 1,000 个使用 TLS-CHACHA20-POLY1305-SHA256 的会话<br><br>
+    这种均匀分布使得研究者可以评估：<strong>在密码套件不可知（cipher-agnostic）的条件下，分类器是否仍能有效运作</strong>——即分类性能不应依赖于特定的加密算法。
+  </div>
+
+  <div class="takeaway-box">
+    Takeaway 5: CipherSpectrum 通过统一表示 TLS 1.3 的三种强制/推荐密码套件，提供了一个全面的数据集。<br>
+    Takeaway 6: CipherSpectrum 的公开可用性支持开发鲁棒且可泛化的 NTC 模型，促进 cipher-agnostic 网络流量分类。
+  </div>
+</div>
+
+<!-- 5. 348 Feature Masking Experiments -->
+<div class="card">
+  <h2>5. 348 特征掩码实验：11 种 Occlusion 策略的完整画像</h2>
+
+  <h3>5.1 实验设计</h3>
+  <p>SoK 进行了 <strong>348 次系统性 occlusion 实验</strong>——对 ET-BERT 和 YaTC 两个 SOTA 分类器，在 CipherSpectrum 和 CSTNET-TLS1.3 两个数据集上，覆盖 12 种设计选择组合（4 种粒度 × 多种提取策略），应用 11 种不同的特征掩码策略：</p>
+
+  <table>
+    <tr><th>ID</th><th>策略</th><th>L2 MAC</th><th>L3 IP</th><th>L3 ID/Chk</th><th>L4 端口</th><th>L4 Seq/Ack</th><th>L4 Win/TS</th><th>L7 载荷</th><th>SNI</th><th>揭示什么</th></tr>
+    <tr><td><strong>A1</strong></td><td>全部数据</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>基线性能</td></tr>
+    <tr><td><strong>D1</strong></td><td>匿名化 SII</td><td>R</td><td>R</td><td>-</td><td>R</td><td>-</td><td>-</td><td>-</td><td>-</td><td>对 SII 的依赖程度</td></tr>
+    <tr><td><strong>D2</strong></td><td>匿名化 SNI</td><td>R</td><td>R</td><td>-</td><td>R</td><td>-</td><td>-</td><td>-</td><td>R</td><td>对 SNI 的依赖程度</td></tr>
+    <tr><td><strong>C</strong></td><td>无上下文过拟合</td><td>R</td><td>R</td><td>R</td><td>R</td><td>R</td><td>-</td><td>-</td><td>-</td><td>上下文过拟合的贡献</td></tr>
+    <tr><td><strong>T</strong></td><td>无时间过拟合</td><td>R</td><td>R</td><td>-</td><td>R</td><td>-</td><td>R</td><td>-</td><td>-</td><td>时间过拟合的贡献</td></tr>
+    <tr><td><strong>CTD</strong></td><td>无所有过拟合</td><td>R</td><td>R</td><td>R</td><td>R</td><td>R</td><td>R</td><td>-</td><td>R</td><td>"真实"性能</td></tr>
+    <tr><td><strong>H1</strong></td><td>仅包头</td><td>R</td><td>R</td><td>-</td><td>R</td><td>-</td><td>-</td><td>E</td><td>R</td><td>包头的贡献</td></tr>
+    <tr><td><strong>P1</strong></td><td>仅载荷</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>-</td><td>-</td><td>载荷的贡献</td></tr>
+    <tr><td><strong>E1</strong></td><td>仅加密载荷</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>ENC</td><td>E</td><td>加密载荷的贡献</td></tr>
+    <tr><td><strong>E2</strong></td><td>E1-掩码</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>MSK</td><td>E</td><td>载荷长度的贡献</td></tr>
+    <tr><td><strong>E3</strong></td><td>E1-混淆</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>E</td><td>OBF</td><td>E</td><td>隐含模式的贡献</td></tr>
+  </table>
+  <p style="font-size:12px;color:var(--text-secondary);">R=Randomize (替换为随机十六进制值); E=Eradicate (替换为0x00); ENC=保留加密状态; MSK=替换为0xFF; OBF=替换为与类别无关的伪随机值。</p>
+
+  <h3>5.2 CipherSpectrum 上的核心实验数据</h3>
+  <table>
+    <tr><th>Occlusion</th><th>ET-BERT<br>平均准确率</th><th>YaTC<br>平均准确率</th><th>关键解读</th></tr>
+    <tr><td>A1（全部数据）</td><td>0.96</td><td>0.90</td><td>基线：在包含所有泄露特征的条件下，性能极高</td></tr>
+    <tr><td style="color:var(--accent);"><strong>D1（去除 SII）</strong></td><td style="color:var(--accent);"><strong>0.51 (↓0.45)</strong></td><td style="color:var(--accent);"><strong>0.62 (↓0.28)</strong></td><td>平均下降 0.36——SII 是最主要的虚假信号来源</td></tr>
+    <tr><td>C（去除上下文过拟合）</td><td>0.57 (↓0.06)</td><td>0.55 (↓0.05)</td><td>上下文特征的贡献虽小于 SII 但仍显著</td></tr>
+    <tr><td>T（去除时间过拟合）</td><td>0.57 (↓0.06)</td><td>0.56 (↓0.04)</td><td>时间特征同样贡献 4-6pp</td></tr>
+    <tr><td style="color:var(--accent);"><strong>E1（仅加密载荷）</strong></td><td style="color:var(--accent);"><strong>0.12</strong></td><td style="color:var(--accent);"><strong>0.30</strong></td><td>加密载荷本身几乎无法支撑分类</td></tr>
+    <tr><td>E2（仅载荷长度）</td><td>0.12</td><td><strong>0.39 ↑</strong></td><td>YaTC 的反直觉提升——加密随机性反而是噪声</td></tr>
+    <tr><td>E3（完美随机载荷）</td><td>0.12</td><td>0.30</td><td>确认长度是唯一的可学习信号</td></tr>
+    <tr><td>H1（仅包头）</td><td><strong>0.63</strong></td><td>0.57 (↓0.03)</td><td>ET-BERT 完全基于包头分类；YaTC 失去载荷长度贡献</td></tr>
+  </table>
+
+  <h3>5.3 按原始预处理方式的结果（最具说服力）</h3>
+  <p>当使用 ET-BERT 和 YaTC 各自<strong>原始论文推荐的预处理方式</strong>时：</p>
+  <table>
+    <tr><th>模型</th><th>原始配置 (A1)</th><th>CTD (去除所有过拟合)</th><th>下降</th></tr>
+    <tr><td>ET-BERT</td><td>0.91</td><td><strong>0.59</strong></td><td><strong>↓ 0.32 (35%)</strong></td></tr>
+    <tr><td>YaTC</td><td>0.93</td><td><strong>0.68</strong></td><td><strong>↓ 0.25 (27%)</strong></td></tr>
+  </table>
+  <p>这意味着在原论文报告的 ~93% 准确率中，<strong>超过四分之一来自过拟合产生的虚假信号</strong>——而这些信号在实际部署中不存在。</p>
+
+  <h3>5.4 实验的关键方法论创新</h3>
+  <p>SoK 的 occlusion 实验与 Sugar 的 evaluation 实验互补但方法不同：</p>
+  <ul>
+    <li><strong>Sugar 的方法：</strong>改变训练/测试集划分方式（per-packet → per-flow），改变 encoder 训练模式（frozen）</li>
+    <li><strong>SoK 的方法：</strong>保持训练流程不变，但<strong>系统性修改输入数据</strong>（掩码/随机化/消除特定特征），观察性能变化</li>
+    <li><strong>共同揭示：</strong>加密流量分类的"高性能"主要来自非加密的特征（包头元数据、会话特定 artifact、数据泄露），而非来自对加密载荷的分析</li>
+  </ul>
+</div>
+
+<!-- 6. 12条评估指南 -->
+<div class="card">
+  <h2>6. 12 条评估指南（The 12 Guidelines）</h2>
+  <p>基于全部实验发现，SoK 论文提出了 12 条可操作的评估和设计指南：</p>
+
+  <div class="grid-2">
+    <div class="guideline-box">
+      <strong>Guideline 1:</strong> 避免使用 SII 特征（MAC 地址、IP 地址、协议端口）——它们导致过拟合且降低模型泛化能力。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 2:</strong> 模糊处理或排除会话初始部分的 SNI 数据，尤其是在使用可能无意中捕获 SNI 的大数据表示时。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 3:</strong> 避免使用无信息的（uninformative）、会话特定的字段如 IP ID、IP header checksum、TCP SeqNo/AckNo，以减少上下文过拟合风险。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 4:</strong> 排除或随机化时间变化的字段如 TCP Timestamp，防止模型对时间模式产生依赖。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 5:</strong> 确保数据提取策略最小化对上下文和时间特征的依赖——避免同一会话的样本同时出现在训练和测试集中。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 6:</strong> 关注加密载荷<strong>长度</strong>而非内容——分类器主要依赖载荷长度而非密文中的内在模式。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 7:</strong> 使用结构化表示（如分段矩阵 / segmented matrices）以更好地捕获载荷长度变化——尤其是当包边界与分类相关时。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 8:</strong> 谨慎解释在加密数据中观察到的模式——它们可能来自未加密或过时数据集中的 artifact，而非现代加密流量的有意义的洞察。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 9:</strong> 避免仅依赖加密载荷进行分类——它们提供的信息有限；包头数据对准确性仍然至关重要。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 10:</strong> 对关于载荷足够性的假设保持警惕——这些可能源于过时或未加密数据集中的 artifact。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 11:</strong> 同时利用包头和载荷长度信息来提高分类性能，尤其是在现代加密网络环境中。
+    </div>
+    <div class="guideline-box">
+      <strong>Guideline 12:</strong> 避免对载荷进行任意截断或填充——这些修改可能显著影响分类器准确性，特别是对于依赖载荷长度作为关键特征的模型。
+    </div>
+  </div>
+</div>
+
+<!-- 7. Connection to Sugar -->
+<div class="card">
+  <h2>7. 与 Sweet Danger of Sugar 的关系：互补的方法论审计</h2>
+
+  <h3>7.1 独立发现，殊途同归</h3>
+  <p>Sugar (SIGCOMM 2025) 和 SoK (IEEE S&P 2025) 是两篇<strong>独立研究</strong>，在同一年分别发表在网络和安全的顶级会议上。它们从不同的角度审视同一个问题：加密流量分类的高准确率是否可信。两者得出了高度一致的结论：<strong>不可信——高准确率来自方法论缺陷，而非对加密流量的真正理解</strong>。</p>
+
+  <table>
+    <tr><th>维度</th><th>Sweet Danger of Sugar</th><th>SoK: Decoding the Enigma</th></tr>
+    <tr><td><strong>方法论定位</strong></td><td>实验性批判（experimental debunking）</td><td>系统性知识化（Systematization of Knowledge）</td></tr>
+    <tr><td><strong>聚焦范围</strong></td><td>表示学习/预训练模型（ET-BERT, YaTC, NetMamba, TrafficFormer, netFound + Pcap-Encoder）</td><td>原始信息基础 NTC（18 项研究，2015-2024）</td></tr>
+    <tr><td><strong>核心发现 1</strong></td><td>Per-packet split 造成隐性流 ID 数据泄露</td><td>Per-packet split 导致上下文过拟合（IP ID, SeqNo, AckNo）</td></tr>
+    <tr><td><strong>核心发现 2</strong></td><td>Frozen encoder 下所有模型 &lt;30%；预训练几乎无用（随机初始化 vs 预训练：97.4% vs 97.1%）</td><td>消除过拟合特征后准确率下降 25-35pp；加密载荷仅贡献 0.12-0.30 准确率</td></tr>
+    <tr><td><strong>核心发现 3</strong></td><td>传统 ML（RF/XGBoost）匹配或超越 DL 模型</td><td>载荷长度是唯一可从加密流量中学到的信号（E1→E2→E3 实验）</td></tr>
+    <tr><td><strong>核心发现 4</strong></td><td>TLS 1.3 AEAD 密码学论证——密文无模式</td><td>过时数据集包含 70-99% 非加密流量和已废弃密码套件</td></tr>
+    <tr><td><strong>提出的修复</strong></td><td>四条黄金法则 + Pcap-Encoder 对照实现</td><td>12 条评估指南 + CipherSpectrum 现代数据集</td></tr>
+    <tr><td><strong>互补性</strong></td><td>纵深攻击预训练范式的有效性（pre-training → downstream 的完整链路）</td><td>横向覆盖整个 NTC 设计空间（粒度 × 提取策略 × 特征 × SII）</td></tr>
+  </table>
+
+  <h3>7.2 两篇论文共同揭示的核心真相</h3>
+  <ol>
+    <li><strong>加密载荷不可学习：</strong>TLS 1.3 AEAD 保证密文在计算上与随机无区别。Sugar 通过密码学论证 + 消融实验证明；SoK 通过 E1/E2/E3 72 次 occlusion 实验证明。</li>
+    <li><strong>数据划分是关键：</strong>Sugar 的 per-flow split 和 SoK 的"避免同一会话的样本分散在训练/测试中"（Guideline 5）本质上是同一个原则——但 Sugar 从训练/测试划分的角度切入，SoK 从特征过拟合的角度切入。</li>
+    <li><strong>方法论的"甜蜜毒药"：</strong>Sugar 命名了这一现象——好的结果（sweet results）像糖一样诱惑研究者停止追问"为什么好"。SoK 则为"为什么好"提供了系统性的特征归因——准确率中多少来自 SII、多少来自上下文 artifact、多少来自时间 artifact、多少来自载荷长度。</li>
+  </ol>
+
+  <h3>7.3 结合起来看：一个完整的领域诊断</h3>
+  <div class="finding">
+    <strong>Sugar + SoK = 加密流量分类领域的完整方法论审计：</strong><br><br>
+    <strong>Sugar 回答："你做错了什么？"</strong>（per-packet split、unfrozen encoder、缺乏浅层基线、预训练无效）<br>
+    <strong>SoK 回答："你的数据和方法论有哪些系统性缺陷？"</strong>（过时数据集、三类过拟合、未经证实的假设）<br><br>
+    两者结合，形成了一个从<strong>数据集→训练划分→特征选择→模型评估</strong>的完整诊断框架。任何未来的加密流量分类研究都应该同时满足两篇论文提出的评估标准。
+  </div>
+</div>
+
+<!-- 8. 领域启示 -->
+<div class="card">
+  <h2>8. 领域启示与未来方向</h2>
+
+  <h3>8.1 即时行动项</h3>
+  <ol>
+    <li><strong>停止使用 pre-2018 数据集</strong>（ISCX-VPN 2016, USTC-TFC 2016, ISCX-Tor 2016）作为加密流量分类的主要 benchmark。转向 CipherSpectrum 或类似的现代 TLS 1.3 数据集。</li>
+    <li><strong>强制使用 per-flow split</strong>（按五元组，或更严格的 per-session / per-client / per-time split）。</li>
+    <li><strong>始终报告 frozen encoder 性能</strong>作为表示学习有效性的基本检验。如果 frozen 性能极低而 unfrozen 性能很高，预训练没有提供价值。</li>
+    <li><strong>进行特征掩码/随机化实验</strong>（至少 SII 掩码 + 上下文特征掩码）来量化每种特征类型对性能的实际贡献。</li>
+    <li><strong>始终与浅层基线比较</strong>——如果 RF + 手工特征就能达到同等或更好的性能，复杂的 DL 模型就没有存在理由。</li>
+  </ol>
+
+  <h3>8.2 开放问题</h3>
+  <ul>
+    <li><strong>Cipher-agnostic 分类：</strong>如何在不知道（也无法假设）加密算法的情况下进行准确的流量分类？CipherSpectrum 为此提供了测试平台。</li>
+    <li><strong>载荷长度的最优利用：</strong>既然载荷长度是唯一可学习的信号，如何最佳地编码和利用长度序列模式？</li>
+    <li><strong>协议头的深层语义：</strong>Pcap-Encoder 的 Q&A 预训练提供了一条路径——显式地训练模型理解协议头的语义（而不仅仅是字节模式）。</li>
+    <li><strong>跨时间泛化：</strong>如何确保模型在时间推移（网站改版、协议更新、网络环境变化）后仍保持准确性？</li>
+  </ul>
+
+  <div class="highlight-box">
+    <strong>论文的最终呼吁：</strong>SoK 论文不仅是一份批评清单，更是一份行动路线图。它呼吁整个社区：(1) <strong>停止使用过时数据集</strong>，(2) <strong>正视设计选择中的过拟合风险</strong>，(3) <strong>用实证证据证实的假设</strong>，(4) <strong>优先考虑可复现性和透明度</strong>。只有在这些基础上，加密流量分类研究才能真正从实验室走向生产环境。
+  </div>
+</div>
+
+</div>
+</body>
+</html>

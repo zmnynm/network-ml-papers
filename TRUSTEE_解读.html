@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRUSTEE (CCS 2022) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- Hero -->
+<div class="hero">
+  <span class="tag" style="background:#e74c3c;">CCS 2022 · Best Paper Honorable Mention</span>
+  <h1>TRUSTEE: AI/ML for Network Security — The Emperor has no Clothes</h1>
+  <div class="subtitle">When Black-Box Models Meet Production Networks: Underspecification, Shortcut Learning, and the Case for Explainable Trust</div>
+  <div class="meta">
+    <span>🏛️ UCSB + UFRGS + NIKSUN</span>
+    <span>✍️ Jacobs et al.</span>
+    <span>📅 ACM CCS 2022</span>
+  </div>
+</div>
+
+<!-- 1. Core Thesis -->
+<div class="card">
+<h2>1. 核心论点：皇上的新衣——ML for Network Security 的信任危机</h2>
+
+<h3>1.1 学术界与现实世界的断裂</h3>
+<p>过去十年，学术界对"将AI/ML应用于网络安全"的热情呈爆炸式增长。以Intrusion Detection System (IDS)、Malware Detection、Anomaly Detection为主题的应用机器学习论文数量以指数级上升。在顶级安全会议（CCS、USENIX Security、NDSS、S&P）上，每年都有数十篇论文报告"99%+ accuracy"、"state-of-the-art F1 score"的检测结果。</p>
+
+<p>然而，<strong>网络运营商（Network Operators）对这些黑盒模型的生产部署极度抗拒</strong>。这种抗拒不是出于保守或技术恐惧——而是源于无数次的现实教训：一个在实验室达到99%准确率的模型，部署到真实网络后可能产生灾难性的误报和漏报。TRUSTEE论文直接将这一现象命名为"<strong>The Emperor has no Clothes</strong>"（皇帝的新衣），尖锐地指出整个研究社区对ML模型的可部署性存在系统性盲区。</p>
+
+<h3>1.2 根本原因：Underspecification（欠规范）</h3>
+<p>TRUSTEE将信任危机的根因归结为一个核心概念——<strong>Underspecification</strong>。在机器学习中，underspecification指的是：给定相同的训练数据和相同的模型架构，存在大量不同的模型都能达到几乎相同的测试集性能，<strong>但这些模型在真实分布上的行为可能截然不同</strong>。</p>
+
+<p>对于网络安全的ML模型，underspecification表现为三种典型形式：</p>
+
+<div class="critique-box">
+<h4>类型一：Shortcut Learning（捷径学习）</h4>
+<p>模型捕捉到的是训练数据中的<strong>表面相关性</strong>而非<strong>真正的安全语义</strong>。例如，一个NIDS模型可能学会"目的端口 == 80 → 正常流量"，因为训练数据中大多数HTTP流量确实是良性的。但在真实网络中，攻击者可以轻易地利用80端口进行恶意通信。模型学到的是端口号与标签之间的统计相关性，而非流量的行为模式。</p>
+<p><strong>本质</strong>：模型找到了一个在训练集上高度预测但<strong>在对抗环境下极其脆弱</strong>的"捷径"。</p>
+</div>
+
+<div class="critique-box">
+<h4>类型二：Spurious Correlations（虚假相关性）</h4>
+<p>模型利用了训练数据中<strong>偶然存在的统计相关性</strong>，这些相关性在真实环境中不成立。例如，训练数据中所有来自IP段10.0.x.x的流量都是正常的（因为采集自内网蜜罐），模型就学会了"源IP在10.0.x.x → 正常"。但这一规则显然不具备泛化性——攻击者可能来自任何IP段。</p>
+<p><strong>本质</strong>：模型学到的不是安全知识，而是<strong>数据采集过程中的artifact</strong>。</p>
+</div>
+
+<div class="critique-box">
+<h4>类型三：OOD Vulnerability（分布外脆弱性）</h4>
+<p>当实际流量的分布偏离训练分布时（这在网络安全中是常态——攻击模式不断演变），模型可能<strong>静默失败</strong>（silent failure）。更危险的是，模型通常<strong>不知道</strong>自己遇到了分布外样本，会给出高置信度的错误预测。对于网络运营商来说，一个静默失败的模型比一个没有模型更危险——因为它提供了一种虚假的安全感。</p>
+</div>
+
+<div class="finding">
+<strong>核心洞察</strong>：TRUSTEE的核心贡献不在于提出一种新的解释方法，而在于<strong>重新定义了问题本身</strong>——从"如何解释模型"到"如何评估模型是否值得信任"。这一视角转换将可解释性从"锦上添花"提升到了"部署前置条件"的高度。
+</div>
+</div>
+
+<!-- 2. TRUSTEE Framework -->
+<div class="card">
+<h2>2. TRUSTEE框架：Trust-Oriented Decision Tree Extraction</h2>
+
+<p>TRUSTEE的名称本身就是对框架核心思想的精炼：<strong>Tru</strong>st-Oriented (Trust) + <strong>D</strong>ecision <strong>T</strong>re<strong>e</strong> <strong>E</strong>xtraction。它是一个从黑盒ML模型中提取全局解释的框架，输入为黑盒模型和训练数据集，输出为两个关键产物：</p>
+<ol>
+  <li><strong>高保真度、低复杂度的决策树</strong>——近似黑盒模型的全局决策边界</li>
+  <li><strong>Trust Report（信任报告）</strong>——标记欠规范证据（shortcut learning、虚假相关性、OOD脆弱性）</li>
+</ol>
+
+<h3>2.1 算法概览：四个阶段</h3>
+
+<div class="flow">
+  <div class="step">Phase 1<br>候选树生成</div>
+  <div class="arrow">→</div>
+  <div class="step">Phase 2<br>稳定性选择</div>
+  <div class="arrow">→</div>
+  <div class="step">Phase 3<br>剪枝与报告</div>
+  <div class="arrow">→</div>
+  <div class="step">Phase 4<br>保真度评估</div>
+</div>
+
+<h3>2.2 Phase 1: Iterative Sampling & Candidate Tree Generation（候选树生成）</h3>
+<p>这是TRUSTEE算法中最核心的步骤，通过迭代采样和伪标签生成一系列候选决策树：</p>
+
+<pre>
+Algorithm: Phase 1 — Candidate Tree Generation
+Input: blackbox_model M, training data D, num_iter N, samples_size α
+Output: list of candidate trees T_candidates
+
+For i = 1 to N:
+    1. D_i = random_subsample(D, ratio=α)     # 随机采样α比例的训练数据
+    2. ŷ_i = M.predict(D_i)                    # 用黑盒模型生成伪标签
+    3. tree_i = train_decision_tree(D_i, ŷ_i)  # 基于伪标签训练候选决策树
+    4. T_candidates.append(tree_i)
+</pre>
+
+<p><strong>关键设计考量</strong>：</p>
+<ul>
+  <li><strong>为什么用伪标签而非真实标签？</strong>TRUSTEE的目标是近似<strong>黑盒模型的行为</strong>（包括其错误），而非近似真实决策边界。使用真实标签会让决策树学习"正确"的规则，而非模型的<strong>实际行为</strong>。</li>
+  <li><strong>为什么要多次迭代？</strong>单次随机采样训练出的决策树可能过度拟合了特定子样本的特性（即采样自身的artifact）。多次迭代可以生成不同的候选树，通过稳定性选择机制筛选出最具代表性的那一棵。</li>
+  <li><strong>α 参数的作用</strong>：默认为0.3（使用30%的训练数据）。较小的α使得每次迭代的数据分布有足够差异，保证候选树的多样性。</li>
+</ul>
+
+<h3>2.3 Phase 2: Stability-Driven Selection（稳定性驱动的选择）</h3>
+<p>生成候选树后，TRUSTEE需要从中选出<strong>最能代表黑盒模型全局行为</strong>的那一棵，而非在某个特定子样本上表现最好的。稳定性驱动的选择机制如下：</p>
+
+<pre>
+Algorithm: Phase 2 — Stability-Driven Selection
+Input: candidate trees T_candidates (N trees), held-out data D_heldout
+Output: best tree t_best
+
+For each tree t_i in T_candidates:
+    agreement_i = 0
+    For each tree t_j in T_candidates (j ≠ i):
+        agreement_i += compute_agreement(t_i, t_j, D_heldout)
+    avg_agreement_i = agreement_i / (N - 1)
+
+t_best = argmax_i avg_agreement_i
+</pre>
+
+<p><strong>直觉解释</strong>：如果一棵决策树是黑盒模型行为的良好近似，它应该与<strong>其他同样从不同子样本中学到的决策树</strong>高度一致。换句话说，TRUSTEE选择的是<strong>最"典型"</strong>的决策树——不是最准确的，而是最具代表性的。这一设计有效降低了采样噪声对最终解释的影响。</p>
+
+<div class="highlight-box">
+<strong>稳定性 vs 准确性</strong>：TRUSTEE的稳定性选择不是简单的"majority voting"或"ensemble averaging"。它是一个<strong>pairwise agreement metric</strong>——计算每棵候选树与所有其他树的平均一致率。这确保了选出的树不是一个统计上的异常值（outlier），而是黑盒模型在各种采样条件下的<strong>核心行为模式</strong>。
+</div>
+
+<h3>2.4 Phase 3: Pruning & Trust Report Generation（剪枝与信任报告）</h3>
+<p>选出的候选树可能仍然过于复杂（过多节点、过深路径），降低可解释性。Phase 3通过两个子步骤解决这一问题：</p>
+
+<p><strong>子步骤 3a: Pruning（剪枝）</strong></p>
+<p>在保持与黑盒模型预测一致性的前提下，尽可能缩减决策树的节点数量和深度。常用的剪枝策略包括cost-complexity pruning和minimum samples per leaf。剪枝后的树更易于人类阅读和验证。</p>
+
+<p><strong>子步骤 3b: Trust Report Generation（信任报告生成）</strong></p>
+<p>这是TRUSTEE区别于其他解释方法的关键产出。Trust Report系统性地分析剪枝后的决策树，识别三种欠规范证据：</p>
+
+<table>
+  <tr><th>检测维度</th><th>方法</th><th>示例发现</th></tr>
+  <tr>
+    <td>Shortcut Learning</td>
+    <td>分析树规则，识别表面特征（如固定端口号）主导决策的情况</td>
+    <td>"所有dst_port=80的流量都被分类为良性"——即使攻击流量经过80端口</td>
+  </tr>
+  <tr>
+    <td>Spurious Correlations</td>
+    <td>用领域知识验证规则的合理性</td>
+    <td>"所有来自10.0.1.0/24的流量被认为正常"——这是数据采集artifact，非安全知识</td>
+  </tr>
+  <tr>
+    <td>OOD Vulnerability</td>
+    <td>评估模型在分布外样本上的行为</td>
+    <td>当遇到未见过的端口号-协议组合时，模型输出高置信度随机分类</td>
+  </tr>
+</table>
+
+<h3>2.5 Phase 4: Fidelity Assessment（保真度评估）</h3>
+<p>在留出的测试集上评估决策树与黑盒模型之间的<strong>预测一致性</strong>（global fidelity）：</p>
+
+<pre>Global Fidelity = |{x: tree.predict(x) == blackbox.predict(x)}| / |test_set|</pre>
+
+<p>保真度越高，说明决策树越忠实地反映了黑盒模型的实际决策逻辑。TRUSTEE同时报告<strong>剪枝前和剪枝后</strong>的保真度，让用户了解剪枝对代表性的影响。</p>
+</div>
+
+<!-- 3. Python API -->
+<div class="card">
+<h2>3. Python API 接口</h2>
+
+<p>TRUSTEE提供了简洁的Python API，使得模型信任评估可以无缝集成到现有的ML工作流中：</p>
+
+<pre>
+from trustee import ClassificationTrustee
+
+# Step 1: 初始化，传入要评估的黑盒模型
+trustee = ClassificationTrustee(expert=blackbox_model)
+
+# Step 2: 用训练数据拟合TRUSTEE
+trustee.fit(X_train, y_train,
+    num_iter=50,              # 候选树生成迭代次数
+    num_stability_iter=10,    # 稳定性评估迭代次数
+    samples_size=0.3,         # 每次迭代的子采样比例
+    verbose=True)             # 输出详细日志
+
+# Step 3: 提取解释
+dt, pruned_dt, agreement, reward = trustee.explain()
+# dt:        原始提取的决策树
+# pruned_dt: 剪枝后的决策树
+# agreement: 保真度（黑盒模型与决策树的预测一致率）
+# reward:    信任报告中的信任分数
+
+# Step 4: 可视化
+from sklearn.tree import plot_tree
+plot_tree(pruned_dt, filled=True, feature_names=feature_names)
+</pre>
+
+<p><strong>参数说明</strong>：</p>
+<ul>
+  <li><code>num_iter</code>: 候选树生成阶段的迭代次数。默认50次。对于高维数据（大量特征），建议增加到80-100次以确保候选树的多样性。</li>
+  <li><code>num_stability_iter</code>: 稳定性评估时使用的bootstrap迭代次数。默认10次。</li>
+  <li><code>samples_size</code>: 每次迭代从训练数据中随机采样的比例。默认0.3。较小的值增加候选树多样性，但可能降低每棵树的个体质量。</li>
+</ul>
+
+<div class="finding">
+<strong>API设计哲学</strong>：TRUSTEE的API遵循scikit-learn的<code>fit()</code>/<code>explain()</code>范式，使得熟悉Python ML生态的用户可以无缝上手。方法名<code>explain()</code>也明确传达了TRUSTEE的定位——它是一个<strong>解释工具</strong>，而非"另一个分类器"。
+</div>
+</div>
+
+<!-- 4. Why Decision Trees -->
+<div class="card">
+<h2>4. 为什么选择决策树作为解释形式？</h2>
+
+<p>TRUSTEE选择决策树作为全局解释的表达形式，而非局部方法（LIME、SHAP）常用的线性权重或特征归因，基于以下核心考量：</p>
+
+<h3>4.1 可解释性：最自然的"人类可读"模型</h3>
+<p>决策树的IF-THEN规则形式可以直接被网络安全分析师阅读和理解，无需任何ML背景。一个典型的决策树规则可能是：</p>
+
+<pre>
+IF dst_port == 443 AND packet_length > 1500 AND flow_duration < 5s
+   THEN class = malicious (confidence = 0.92)
+</pre>
+
+<p>安全分析师可以立即判断这条规则是否具有安全语义意义——TLS端口+大包+短流确实可能是某种攻击模式。相比之下，SHAP输出的"feature_17的Shapley值为0.34"对于领域专家来说几乎无法直接解读。</p>
+
+<h3>4.2 全局视角：描述完整决策边界</h3>
+<p>一棵决策树可以描述模型的<strong>完整决策逻辑</strong>，而非针对单个样本的解释。这对于网络运营场景至关重要——安全团队需要的不是"为什么这个特定连接被标记为异常"，而是"模型整体上如何定义异常"。后者才能支持部署决策。</p>
+
+<h3>4.3 可验证性：与领域知识交叉验证</h3>
+<p>决策树中的每一条路径都可以被<strong>独立验证</strong>。安全专家可以逐条检查IF-THEN规则是否与已知的攻击模式、协议规范和网络行为知识一致。这种"逐规则验证"的能力是信任建立的基础——不是要求专家相信一个黑盒，而是让专家可以<strong>逐项确认</strong>模型的推理逻辑。</p>
+
+<div class="highlight-box">
+<strong>与其他解释形式的本质区别</strong>：SHAP给出的是"输入特征对输出结果的贡献度"，LIME给出的是"局部线性近似"，而TRUSTEE的决策树给出的是"<strong>可独立验证的全局决策规则集合</strong>"。后者将信任评估从统计检验问题转化为<strong>逻辑验证问题</strong>——安全团队天然擅长后者。
+</div>
+</div>
+
+<!-- 5. Trust Report -->
+<div class="card">
+<h2>5. Trust Report（信任报告）详解</h2>
+
+<p>Trust Report是TRUSTEE区别于所有其他解释方法的独特产出。它不仅回答"模型做了什么决策"，更回答"<strong>这些决策是否值得信任</strong>"。</p>
+
+<h3>5.1 Shortcut Learning Detection（捷径学习检测）</h3>
+<p>TRUSTEE分析决策树中的<strong>特征使用模式</strong>：</p>
+<ul>
+  <li>如果某个或某几个表面特征（如端口号、IP地址前缀）在树的高层节点反复出现，占据主导地位，而深层的行为特征（如包到达间隔分布、payload熵）很少被使用 → 标志shortcut learning</li>
+  <li>量化指标：特征使用深度分布（feature depth distribution）——表面特征在<strong>浅层节点</strong>出现的比例越高，shortcut learning的嫌疑越大</li>
+</ul>
+
+<h3>5.2 Spurious Correlation Detection（虚假相关性检测）</h3>
+<p>TRUSTEE要求将决策树规则与<strong>领域知识库</strong>进行对照：</p>
+<ul>
+  <li>每条规则首先被转化为自然语言描述</li>
+  <li>安全专家或自动化规则检查器评估每条规则在安全语义上是否合理</li>
+  <li>如果大量规则基于数据采集artifact而非安全原理 → 模型不可信</li>
+</ul>
+
+<h3>5.3 OOD Detection Assessment（分布外检测评估）</h3>
+<p>TRUSTEE在标准训练/测试流程之外引入<strong>对抗性评估</strong>：</p>
+<ul>
+  <li>构造分布外样本（如使用不同时间段、不同网络环境的流量数据）</li>
+  <li>观察模型预测在这类样本上的置信度分布和行为一致性</li>
+  <li>如果模型在OOD样本上仍然给出高置信度预测（即使明显错误） → OOD脆弱性高</li>
+</ul>
+
+<div class="finding">
+<strong>Trust Report的独特价值</strong>：与传统的模型报告（accuracy、F1、AUC）不同，Trust Report回答的是部署决策的核心问题——"<strong>我应该部署这个模型吗？</strong>"而非"这个模型准确吗？"。它直接服务于网络运营商的practical decision-making。
+</div>
+</div>
+
+<!-- 6. Experimental Results -->
+<div class="card">
+<h2>6. 实验评估</h2>
+
+<h3>6.1 核心发现</h3>
+
+<table>
+  <tr><th>评估维度</th><th>主要结果</th></tr>
+  <tr>
+    <td>保真度（Fidelity）</td>
+    <td>TRUSTEE提取的决策树在多数场景下与黑盒模型达成<strong>高预测一致性</strong>（通常 > 85% agreement），剪枝后仍保持较好的一致性</td>
+  </tr>
+  <tr>
+    <td>可解释性（Interpretability）</td>
+    <td>剪枝后的树通常包含 < 30个节点，<strong>安全分析师可以在5-10分钟内完整阅读</strong>所有决策规则</td>
+  </tr>
+  <tr>
+    <td>稳定性和可复现性</td>
+    <td>多次独立运行TRUSTEE产生的决策树结构和规则<strong>高度一致</strong>（稳定选择机制的贡献）</td>
+  </tr>
+  <tr>
+    <td>U发现</td>
+    <td>成功发现多个网络ML模型中的<strong>shortcut learning</strong>和<strong>spurious correlation</strong>证据</td>
+  </tr>
+</table>
+
+<h3>6.2 关键实验发现</h3>
+<p>TRUSTEE在一系列公开网络ML模型上的实验揭示了令人警醒的事实：</p>
+
+<div class="critique-box">
+<h4>发现一：端口号统治一切</h4>
+<p>在多个宣称"达到98%+检测率"的NIDS模型中，TRUSTEE提取的决策树显示<strong>dst_port是决策树根节点和大部分高层节点的分裂特征</strong>。这意味着模型的核心决策逻辑近乎"端口号 = 攻击类型"——而不是学习流量行为模式。当安全分析师验证时发现，模型几乎完全忽略了payload内容、时间序列模式和协议状态转换等真正承载攻击语义的特征。</p>
+</div>
+
+<div class="critique-box">
+<h4>发现二：IP地址的虚假安全性</h4>
+<p>一个在特定内网环境训练的异常检测模型，其TRUSTEE树显示<strong>"source_ip in 10.0.0.0/8 → normal"</strong>是最重要的分类规则。这一规则在训练数据中确实成立（因为该内网段主要是正常流量），但在真实部署中完全不成立——攻击者可以来自任何IP。</p>
+</div>
+
+<div class="critique-box">
+<h4>发现三：OOD静默失败</h4>
+<p>当使用TRUSTEE评估模型在时间偏移测试集上的表现时（训练数据来自周一，测试数据来自周五——不同日期的网络行为模式不同），模型在保持高置信度输出的同时，实际性能大幅下降。模型<strong>不知道</strong>自己遇到了不熟悉的数据分布。</p>
+</div>
+</div>
+
+<!-- 7. Concrete Example -->
+<div class="card">
+<h2>7. 完整案例：NIDS模型的信任评估</h2>
+
+<div class="example-box">
+<h3>场景设置</h3>
+<p>假设一个安全团队开发了一个基于深度学习的NIDS（Network Intrusion Detection System）模型，在CIC-IDS2017数据集上训练。该模型在测试集上达到96%的准确率和95%的F1分数。团队准备将其部署到企业生产网络。</p>
+<p><strong>在部署之前</strong>，他们决定使用TRUSTEE进行信任评估。</p>
+
+<h3>Step 1: 运行TRUSTEE</h3>
+<pre>
+trustee = ClassificationTrustee(expert=nids_dl_model)
+trustee.fit(X_train, y_train, num_iter=50, samples_size=0.3)
+dt, pruned_dt, agreement, reward = trustee.explain()
+# agreement = 0.91 (决策树与黑盒模型91%一致)
+# reward = trust_report  # 包含详细分析
+</pre>
+
+<h3>Step 2: 阅读提取的决策树</h3>
+<p>剪枝后的决策树包含以下关键规则：</p>
+<pre>
+[根节点] dst_port <= 80?
+  ├── YES → [节点2] dst_port == 21?
+  │   ├── YES → MALICIOUS (FTP brute force)
+  │   └── NO  → [节点3] packet_length < 100?
+  │       ├── YES → NORMAL
+  │       └── NO  → MALICIOUS
+  └── NO  → [节点4] dst_port == 443?
+      ├── YES → [节点5] flow_duration > 600s?
+      │   ├── YES → NORMAL
+      │   └── NO  → MALICIOUS
+      └── NO  → MALICIOUS
+</pre>
+
+<h3>Step 3: 分析Trust Report</h3>
+<p>安全分析师阅读树结构后，立即识别出问题：</p>
+
+<ol>
+  <li><strong>端口号是决定性的根节点特征</strong>——这意味模型主要靠端口号判断攻击，而非行为特征。攻击者完全可以通过非标准端口绕过检测。</li>
+  <li><strong>packet_length的特征使用极为粗糙</strong>（只是一个100字节的简单阈值），没有考虑包大小的统计分布特征。</li>
+  <li><strong>时间特征flow_duration仅在443端口出现</strong>，说明不是系统性的时间模式分析。</li>
+</ol>
+
+<h3>Step 4: 部署决策</h3>
+<p>基于Trust Report的分析，安全团队决定<strong>不部署</strong>该模型，而是：
+  <ul>
+    <li>在训练数据中引入端口变异（在非标准端口上注入攻击样本）</li>
+    <li>增加对行为特征（包大小分布、到达间隔分布、协议状态转换）的编码</li>
+    <li>重新训练后再次使用TRUSTEE验证</li>
+  </ul>
+</p>
+
+<p>这个案例完美展示了TRUSTEE的价值：<strong>不是简单地告诉你模型准不准，而是揭示模型为什么准、是否因为正确的理由而准</strong>。96%的准确率没有告诉团队模型在学端口号——TRUSTEE告诉了。</p>
+</div>
+</div>
+
+<!-- 8. Comparison -->
+<div class="card">
+<h2>8. 与主流可解释性方法的系统比较</h2>
+
+<table>
+  <tr>
+    <th>特性</th>
+    <th>LIME (2016)</th>
+    <th>SHAP (2017)</th>
+    <th>DeepAID (2021)</th>
+    <th>xNIDS (2023)</th>
+    <th>TRUSTEE (2022)</th>
+  </tr>
+  <tr>
+    <td><strong>解释范围</strong></td>
+    <td>局部 (per-sample)</td>
+    <td>局部 (per-sample)</td>
+    <td>局部 (per-sample)</td>
+    <td>局部 (per-sample)</td>
+    <td><strong>全局 (global)</strong></td>
+  </tr>
+  <tr>
+    <td><strong>输出形式</strong></td>
+    <td>线性模型权重</td>
+    <td>Shapley值向量</td>
+    <td>参考样本 + 特征差异</td>
+    <td>特征归因 + 防御规则</td>
+    <td><strong>决策树 + Trust Report</strong></td>
+  </tr>
+  <tr>
+    <td><strong>信任评估</strong></td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td><strong>✅ Trust Report</strong></td>
+  </tr>
+  <tr>
+    <td><strong>稳定性评估</strong></td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td><strong>✅ 稳定选择机制</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Underspecification检测</strong></td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td><strong>✅ 系统检测</strong></td>
+  </tr>
+  <tr>
+    <td><strong>对领域知识的整合</strong></td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td>参考样本</td>
+    <td>自动规则生成</td>
+    <td><strong>规则-知识交叉验证</strong></td>
+  </tr>
+  <tr>
+    <td><strong>目标用户</strong></td>
+    <td>数据科学家</td>
+    <td>数据科学家</td>
+    <td>安全分析师</td>
+    <td>安全运维</td>
+    <td><strong>网络安全决策者</strong></td>
+  </tr>
+</table>
+
+<div class="finding">
+<strong>TRUSTEE的定位</strong>：TRUSTEE不是LIME/SHAP的替代品，而是<strong>互补品</strong>。局部方法回答"为什么这个特定事件被标记"，TRUSTEE回答"这个模型整体上是否值得在真实网络中部署"。两者服务于可解释性的不同层次——前者支持事件调查，后者支持部署决策。
+</div>
+</div>
+
+<!-- 9. Connection to Sugar/SoK -->
+<div class="card">
+<h2>9. 与 Sugar/SoK 的"批判链"</h2>
+
+<p>TRUSTEE与Sweet Danger of Sugar (2025) 和 SoK: Encrypted Traffic Classifiers (2025) 共同构成了一条针对ML for Network Security的<strong>"批判链"</strong>（critique chain）：</p>
+
+<table>
+  <tr><th>论文</th><th>批判视角</th><th>核心论点</th><th>批判对象</th></tr>
+  <tr>
+    <td><strong>TRUSTEE (2022)</strong></td>
+    <td>模型信任评估</td>
+    <td>黑盒模型存在系统性underspecification，缺乏可解释性导致运营方不信任。高测试准确率不等于可部署性。</td>
+    <td>模型本身的质量与可解释性</td>
+  </tr>
+  <tr>
+    <td><strong>Sweet Danger of Sugar (2025)</strong></td>
+    <td>实验方法论</td>
+    <td>加密流量表征学习领域的实验评估存在系统性缺陷，许多宣称的"state-of-the-art"是不可复现的。</td>
+    <td>实验设计的严谨性</td>
+  </tr>
+  <tr>
+    <td><strong>SoK (2025)</strong></td>
+    <td>领域系统性审视</td>
+    <td>加密流量分类领域的知识碎片化，缺乏统一的评估标准和基准。</td>
+    <td>整个领域的研究范式</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+<strong>共同的信息</strong>：三篇论文从不同角度传递了完全一致的核心信息——<strong>高测试准确率 ≠ 可靠的部署</strong>。TRUSTEE从模型信任的角度切入，Sugar从实验复现性的角度切入，SoK从领域规范化的角度切入。三者共同构成了一个完整的论证：在将ML模型部署到安全关键场景之前，我们需要超越准确率的评估框架。
+</div>
+</div>
+
+<!-- 10. Limitations -->
+<div class="card">
+<h2>10. 局限性与未来方向</h2>
+
+<div class="critique-box">
+<h3>10.1 决策树的固有局限</h3>
+<p>决策树作为一种模型结构，本身有表达能力的上限。对于<strong>高度复杂的非线性决策边界</strong>（如深度Transformer在流量分类中学习到的边界），浅层决策树可能无法精确近似。TRUSTEE提取的树可能在保真度（fidelity）上存在天花板效应——即使增加树的深度，也无法完全捕捉深度模型的细微决策逻辑。对于特别复杂的模型，可能需要考虑更富表达力的解释形式（如可解释的神经网络或规则集成）。</p>
+
+<h3>10.2 全局粒度与局部异常</h3>
+<p>全局解释的固有张力是：<strong>全局规则可能掩盖了特定子群中的异常行为</strong>。例如，一个全局上合理的决策树可能在处理特定类型的攻击（如低频慢速攻击）时出现系统性偏差。TRUSTEE的全局视角是优势也是劣势——对于需要理解模型在特定子群行为的需求，可能需要结合局部方法来补齐。</p>
+
+<h3>10.3 训练数据依赖性</h3>
+<p>Trust Report的质量高度依赖于<strong>训练数据的代表性</strong>。如果训练数据本身已经包含了系统性偏差（如特定的网络拓扑、特定的攻击类型分布），TRUSTEE可能无法检测到模型在数据覆盖范围之外的脆弱性。TRUSTEE只能分析模型从数据中学到了什么，无法检测数据本身缺失了什么。</p>
+
+<h3>10.4 静态分析的局限</h3>
+<p>TRUSTEE提供的是<strong>模型训练完成后</strong>的静态分析，无法处理模型在生产环境中的动态行为变化。在真实网络中，流量分布随时间变化（概念漂移），模型性能可能逐渐退化。TRUSTEE不提供对概念漂移的检测能力——这是需要后续监控工具配合的领域。</p>
+
+<h3>10.5 领域知识的要求</h3>
+<p>Trust Report中的虚假相关性检测和OOD评估<strong>高度依赖领域专家的参与</strong>。虽然TRUSTEE可以提供自动化分析（如特征重要性分布、OOD置信度评估），但最终判断"这个规则是否有安全语义意义"仍然需要人类专家。这意味着TRUSTEE的效用在一定程度上受到可用人力资源的限制。</p>
+</div>
+
+<div class="finding">
+<strong>尽管有这些局限，TRUSTEE依然是当前最系统的ML模型信任评估框架之一</strong>。它的核心贡献不在于技术方法的复杂度（决策树提取本身不是新概念），而在于将"trust"作为评估目标本身进行了系统化、可操作化的定义。这为整个可解释性领域设定了一个更高的标准——解释不仅要说清楚模型做了什么，还要说清楚这些行为是否值得信赖。
+</div>
+</div>
+
+<!-- Final card: Summary -->
+<div class="card">
+<h2>总结</h2>
+
+<p>TRUSTEE的标题"The Emperor has no Clothes"取得精妙——它借用了安徒生童话中揭示"皇帝其实没穿衣服"的孩子的角色。在网络安全的ML领域，TRUSTEE就是那个指出"这些模型其实并不像论文中宣称的那样可靠"的孩子。</p>
+
+<p>论文的核心贡献可以归纳为三个层面：</p>
+<ol>
+  <li><strong>问题定义</strong>：将underspecification作为ML for Network Security的核心问题正式提出，并系统性地定义了三种表现形式（shortcut learning、spurious correlations、OOD vulnerability）。</li>
+  <li><strong>方法论</strong>：提出了TRUSTEE框架——通过稳定性驱动的决策树提取和Trust Report生成，将模型信任评估从抽象概念转化为可操作的流程。</li>
+  <li><strong>领域影响</strong>：为网络ML社区设定了一个更高的评估标准。不再满足于报告accuracy/F1，而是要求回答"模型为什么做出这些决策"和"这些决策在真实网络中是否可靠"。</li>
+</ol>
+
+<p>在可解释性研究的发展脉络中，TRUSTEE代表了一个重要的转向——从<strong>"解释模型"到"评估信任"</strong>。这一转向在其后的GEAD (CCS 2024) 和 Agua (SIGCOMM 2025) 中得到了延续和深化。</p>
+</div>
+
+</div>
+</body>
+</html>

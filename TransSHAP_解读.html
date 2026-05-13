@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransSHAP (EACL 2021) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#27ae60;">NLP XAI</span>
+  <h1>TransSHAP / BERT meets Shapley: 将 Shapley 值解释适配到 Transformer 模型</h1>
+  <div class="subtitle">打破 SHAP 对表格数据的依赖，首次将 Shapley 值框架系统性地移植到 BERT 类预训练语言模型的 token 级解释</div>
+  <div class="meta">
+    <span>Kokalj, Skrlj, Lavrac, Pollak &amp; Robnik-Sikonja</span>
+    <span>Jozef Stefan Institute, Slovenia</span>
+    <span>EACL 2021 Hackashop</span>
+  </div>
+</div>
+
+<!-- 1. MOTIVATION -->
+<div class="card">
+  <h2>1. 动机：为什么 SHAP 不能直接用于 BERT？</h2>
+
+  <p>SHAP (Lundberg &amp; Lee, 2017) 在表格数据上取得了巨大成功，但其设计隐含了三个假设，这三个假设在 Transformer 模型上<strong>全部失效</strong>：</p>
+
+  <h3>问题 1：特征不可独立操作</h3>
+  <p>在表格数据中，"移除特征年龄"意味着将年龄列的值设为缺失值或均值——模型仍然可以接受这个残缺的输入。但在 BERT 中，<strong>你不能简单地"删除"一个 token</strong>。输入是一个 512 长度的序列，每个位置必须有且仅有一个 token。如果直接删除位置 i 的 token，序列变短了，位置编码错位了，模型的行为无法预测。</p>
+
+  <h3>问题 2：零值掩码对 Transformer 无意义</h3>
+  <p>原始 SHAP 的默认策略是将缺失特征设置为 0（或均值）。但在 Transformer 中，将 token 嵌入向量置零会产生一个<strong>BERT 从未在预训练中见过的输入</strong>——这个"零向量 token"不是任何真实词汇的表示，模型对其的响应是未定义的（out-of-distribution）。模型的输出变化可能来自"输入异常"而非"特征移除"，归因结果不可信。</p>
+
+  <h3>问题 3：Token 之间存在深度上下文依赖</h3>
+  <p>表格数据中，特征 age=35 的值独立于 income=50000——你可以独立地变动它们。但在 BERT 中，<strong>self-attention 机制使得每个 token 的表示依赖于序列中所有其他 token</strong>。这意味着即使你能技术上"替换"某个 token，其影响会通过 attention 传播到所有位置。原始 SHAP 的边际贡献框架假设特征可以独立扰动，这在强依赖的序列数据中是一个严重近似。</p>
+
+  <div class="finding">
+    <strong>核心挑战：</strong>TransSHAP 需要回答的问题是——如何在保持 (a) Shapley 值的数学严格性、(b) Transformer 输入的有效性、(c) token 间上下文依赖 三者平衡的前提下，计算每个 token 对预测的公平贡献？
+  </div>
+</div>
+
+<!-- 2. CORE ADAPTATIONS -->
+<div class="card">
+  <h2>2. 核心适配：三项关键设计决策</h2>
+
+  <h3>适配 1：用 [MASK] 替换代替零值掩码</h3>
+  <p>这是 TransSHAP <strong>最关键的洞察</strong>。BERT 在预训练期间通过 Masked Language Modeling (MLM) 任务大量接触了 [MASK] token：15% 的输入 token 被替换为 [MASK]，模型学习从上下文预测原始词汇。这意味着：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>[MASK] 是 BERT "熟悉"的输入</strong>——它不是 OOD 信号，而是预训练语境的自然组成部分</li>
+    <li>将一个 token 替换为 [MASK] 相当于告诉模型"这个位置的信息暂时不可用，请从上下文推断"</li>
+    <li>这完美对应了 Shapley 值中"特征缺失"的语义：不是删除了特征，而是<strong>用先验知识（上下文）填补了空缺</strong></li>
+  </ul>
+
+  <p>数学形式化：对于输入序列 x = (x_1, x_2, ..., x_n)，简化特征向量 z' ∈ {0,1}^n，定义映射函数 h_x：</p>
+  <pre>
+h_x(z')_i = x_i     if z'_i = 1   (token 存在)
+h_x(z')_i = [MASK]  if z'_i = 0   (token 缺失)
+  </pre>
+
+  <p>这与原始 SHAP 的零值/均值填充有本质区别：<strong>[MASK] 不是零向量，而是 BERT 词汇表中具有语义功能的特殊 token，其嵌入向量在预训练中被优化过</strong>。</p>
+
+  <h3>适配 2：Kernel SHAP 采样策略</h3>
+  <p>TransSHAP 采用 Kernel SHAP 的加权采样框架，但对采样进行了文本适配：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>特征定义：</strong>每个 WordPiece/BPE token = 一个特征。对于输入 "the cat sat on the mat"（7 个 token），特征空间维度 M=7</li>
+    <li><strong>子集采样：</strong>按 SHAP 核权重 π_x'(z') 采样简化特征向量 z'（哪些 token 保留，哪些替换为 [MASK]）</li>
+    <li><strong>模型评估：</strong>对每个采样的 z'，构造对应的掩码输入序列，前向传播 BERT 得到预测，然后求解加权线性回归得到 Shapley 值</li>
+    <li><strong>采样数量：</strong>通常使用 K=1000~5000 次模型评估（远小于 2^n，但对长文本仍是一个显著成本）</li>
+  </ul>
+
+  <h3>适配 3：Token 粒度的特征定义</h3>
+  <p>TransSHAP 选择在 <strong>WordPiece token 级别</strong>进行解释——每个子词单元是一个独立的"特征"。这带来了粒度选择问题：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>优点：</strong>细粒度，可以捕捉子词级别的语义贡献（如 "un-" 前缀的否定含义）</li>
+    <li><strong>缺点：</strong>对用户不友好。例如 "embeddings" 被分割为 "em", "##bed", "##ding" 三个 token，分别解释后难以理解整体语义</li>
+    <li><strong>后续改进方向：</strong>可以向上聚合到词级别（sum 或平均 WordPiece Shapley 值），但聚合会丢失子词内部的贡献分布信息</li>
+  </ul>
+
+  <div class="highlight-box">
+    <strong>设计权衡：</strong>[MASK] 替换策略是 TransSHAP 对 SHAP 框架最巧妙的本土化改造。它利用 BERT 预训练中内建的 MLM 能力，将"缺失值"问题转化为"mask 预测"问题——这正是 BERT 被训练要做的事。这一设计决策使得 Shapley 值的"缺失性公理"在 Transformer 语境中获得了自然的实现方式。
+  </div>
+</div>
+
+<!-- 3. TRANSSHAP VISUALIZER -->
+<div class="card">
+  <h2>3. TransSHAP 可视化器：顺序呈现的革命</h2>
+
+  <p>TransSHAP 的第二大贡献是提出了一种专门适配文本数据的 <strong>顺序可视化方案</strong>，这与传统 XAI 工具的做法截然不同。</p>
+
+  <h3>3.1 传统方法的缺陷：排序列表</h3>
+  <p>LIME 和 SHAP 的默认可视化将特征按重要性从高到低排序展示。这对表格数据是合理的——"年龄贡献 0.12，收入贡献 0.08，邮编贡献 0.02"的列表清晰有用。但对于文本：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>将 "The movie was surprisingly great despite the long runtime" 的 token 按 Shapley 值排序后，变成 "surprisingly" > "great" > "long" > "despite" > "the" > "movie" > ... </li>
+    <li>这<strong>彻底破坏了语序信息</strong>——你不知道 "surprisingly" 修饰的是 "great" 还是 "long"</li>
+    <li>文本中的上下文关系和句法结构在排序中完全丢失</li>
+  </ul>
+
+  <h3>3.2 TransSHAP 的顺序可视化</h3>
+  <p>TransSHAP Visualizer 的核心原则：<strong>保持 token 的自然阅读顺序，用颜色编码重要性</strong>：</p>
+
+  <div class="flow" style="font-size: 15px; gap: 3px; margin: 18px 0;">
+    <span class="step" style="background: #e8f5e9; border-color: #27ae60; font-size: 14px;">The<br><small style="font-weight:400;color:#888">+0.01</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #e8f5e9; border-color: #27ae60; font-size: 14px;">movie<br><small style="font-weight:400;color:#888">+0.03</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #e8f5e9; border-color: #27ae60; font-size: 14px;">was<br><small style="font-weight:400;color:#888">+0.02</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #a5d6a7; border-color: #27ae60; font-size: 14px; font-weight: 700;">surprisingly<br><small style="font-weight:400;color:#1b5e20">+0.18</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #81c784; border-color: #27ae60; font-size: 14px; font-weight: 700;">great<br><small style="font-weight:400;color:#1b5e20">+0.22</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #e8f5e9; border-color: #27ae60; font-size: 14px;">despite<br><small style="font-weight:400;color:#888">+0.01</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #e8f5e9; border-color: #27ae60; font-size: 14px;">the<br><small style="font-weight:400;color:#888">+0.01</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #ffcdd2; border-color: #c0392b; font-size: 14px;">long<br><small style="font-weight:400;color:#b71c1c">-0.09</small></span>
+    <span class="arrow" style="font-size: 14px;">→</span>
+    <span class="step" style="background: #ffcdd2; border-color: #c0392b; font-size: 14px;">runtime<br><small style="font-weight:400;color:#b71c1c">-0.11</small></span>
+  </div>
+
+  <p>设计中每个 token 的颜色由其 Shapley 值决定：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>绿色</strong> = 正向贡献（推动预测朝向当前类别）</li>
+    <li><strong>红色</strong> = 负向贡献（拉低预测，朝向对立类别）</li>
+    <li><strong>颜色饱和度/深浅</strong> = 贡献的绝对值大小</li>
+  </ul>
+
+  <h3>3.3 顺序可视化的优势</h3>
+  <p>人类读者可以同时看到<strong>两维信息</strong>：</p>
+  <ol style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>空间/句法维度</strong>（从左到右的阅读顺序）：哪些位置的 token 重要？修饰词和中心词的关系是否在解释中得到体现？</li>
+    <li><strong>重要性维度</strong>（颜色深浅）：哪些 token 贡献最大？正负贡献如何分布？</li>
+  </ol>
+  <p>作者通过用户实验证实：<strong>参与者使用顺序可视化识别关键证据 token 的准确率显著高于使用排序列表</strong>（p < 0.01）。</p>
+</div>
+
+<!-- 4. CONCRETE EXAMPLE -->
+<div class="card">
+  <h2>4. 完整示例：情感分析中的 TransSHAP</h2>
+
+  <div class="example-box">
+    <strong>输入句子：</strong>"This movie was surprisingly great despite the long runtime."<br>
+    <strong>模型预测：</strong>Positive（积极情感），置信度 0.87<br>
+    <strong>问题：</strong>模型为什么判定这句话为积极？哪些词驱动了这个预测？
+  </div>
+
+  <h3>4.1 TransSHAP 计算流程（逐步演示）</h3>
+
+  <p><strong>Step 1: Tokenization（WordPiece）</strong></p>
+  <pre>["[CLS]", "this", "movie", "was", "surprising", "##ly", "great", "despite", "the", "long", "runtime", ".", "[SEP]"]
+→ M = 13 个 token（包括特殊 token [CLS] 和 [SEP]）</pre>
+
+  <p><strong>Step 2: 按 SHAP 核采样简化特征向量</strong></p>
+  <p>假设采样 K=1000 个 z' 向量。每个 z' 是一个 13 位二进制向量。例如：</p>
+  <pre>z' = [1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1]
+→ 保留 "[CLS]", "this", "movie", "surprising", "##ly", "great", "despite", "the", ".", "[SEP]"
+→ 将 "was", "long", "runtime" 替换为 [MASK]</pre>
+
+  <p><strong>Step 3: 模型前向传播</strong></p>
+  <pre>masked_input = ["[CLS]", "this", "movie", "[MASK]", "surprising", "##ly", "great", "despite", "the", "[MASK]", "[MASK]", ".", "[SEP]"]
+→ BERT forward → 预测输出 f(h_x(z')) = 0.62 (仍判为 positive，但置信度下降)</pre>
+
+  <p>注意：移除 "long" 和 "runtime" 后预测从 0.87 下降到 0.62，说明这两个词对 negative 方向有重要影响——<strong>它们的存在抑制了 positive 预测</strong>。</p>
+
+  <p><strong>Step 4: 加权线性回归求解 Shapley 值</strong></p>
+  <p>用 1000 次评估的 (z', f(h_x(z'))) 数据拟合加权线性回归，得到每个 token 的 Shapley 值：</p>
+
+  <table>
+    <tr><th>Token</th><th>Shapley 值</th><th>方向</th><th>语义解释</th></tr>
+    <tr><td>"great"</td><td>+0.22</td><td>正向</td><td>核心积极信号词</td></tr>
+    <tr><td>"surprising"+"##ly"</td><td>+0.18</td><td>正向</td><td>强化积极程度（出乎意料地好）</td></tr>
+    <tr><td>"movie"</td><td>+0.03</td><td>正向</td><td>中性主体词，轻微正向（电影语境）</td></tr>
+    <tr><td>"this"</td><td>+0.01</td><td>正向</td><td>限定词，几乎无贡献</td></tr>
+    <tr><td>"was"</td><td>+0.02</td><td>正向</td><td>系动词，弱正向关联</td></tr>
+    <tr><td>"despite"</td><td>+0.01</td><td>正向</td><td>轻微正向（暗示转折被克服）</td></tr>
+    <tr><td>"the"</td><td>+0.01</td><td>正向</td><td>冠词，几乎无贡献</td></tr>
+    <tr><td>"long"</td><td><strong>-0.09</strong></td><td><strong>负向</strong></td><td>负面信号（长——通常不好）</td></tr>
+    <tr><td>"runtime"</td><td><strong>-0.11</strong></td><td><strong>负向</strong></td><td>负面信号（片长过长）</td></tr>
+    <tr><td>"."</td><td>+0.01</td><td>正向</td><td>句末标点，几乎无贡献</td></tr>
+  </table>
+
+  <h3>4.2 解读</h3>
+  <p>TransSHAP 的解释清晰地揭示了模型的推理逻辑：模型识别到 "great" 和 "surprisingly" 是强烈的积极信号（正向贡献合计 +0.40），而 "long runtime" 是负面信号（负向贡献合计 -0.20）。<strong>尽管存在负面信号，正向信号的强度压倒性地主导了预测。</strong></p>
+
+  <h3>4.3 TransSHAP vs 传统可视化对比</h3>
+  <div class="grid-2">
+    <div style="background:#fafafa; padding:12px; border-radius:8px;">
+      <strong style="color:#c0392b;">传统排序列表：</strong>
+      <ol>
+        <li>great: +0.22</li>
+        <li>surprisingly: +0.18</li>
+        <li>runtime: -0.11</li>
+        <li>long: -0.09</li>
+        <li>movie: +0.03</li>
+        <li>was: +0.02</li>
+        <li>... (其余)</li>
+      </ol>
+      <small style="color:#888;">→ 丢失了 "surprisingly" 修饰 "great"、 "long" 修饰 "runtime" 的句法关系</small>
+    </div>
+    <div style="background:#fafafa; padding:12px; border-radius:8px;">
+      <strong style="color:#27ae60;">TransSHAP 顺序可视化：</strong>
+      <div style="font-size:13px; line-height:2;">
+        <span style="background:#e8f5e9; padding:1px 4px;">this</span>
+        <span style="background:#e8f5e9; padding:1px 4px;">movie</span>
+        <span style="background:#e8f5e9; padding:1px 4px;">was</span>
+        <span style="background:#81c784; padding:1px 4px; font-weight:bold;">surprisingly</span>
+        <span style="background:#a5d6a7; padding:1px 4px; font-weight:bold;">great</span>
+        <span style="background:#e8f5e9; padding:1px 4px;">despite</span>
+        <span style="background:#e8f5e9; padding:1px 4px;">the</span>
+        <span style="background:#ffcdd2; padding:1px 4px; font-weight:bold;">long</span>
+        <span style="background:#ffcdd2; padding:1px 4px; font-weight:bold;">runtime</span>
+        <span style="background:#e8f5e9; padding:1px 4px;">.</span>
+      </div>
+      <small style="color:#888;">→ 保留了语序和上下文关系，读者可以直观定位重要短语</small>
+    </div>
+  </div>
+</div>
+
+<!-- 5. COMPARISON -->
+<div class="card">
+  <h2>5. 与其他 Transformer 解释方法的系统比较</h2>
+
+  <table>
+    <tr><th>方法</th><th>理论基础</th><th>可视化形式</th><th>Transformer 适配</th><th>主要弱点</th></tr>
+    <tr>
+      <td><strong>TransSHAP</strong></td>
+      <td>Shapley 值（合作博弈论公理化）</td>
+      <td>顺序彩色编码</td>
+      <td>[MASK] 替换 + Kernel SHAP</td>
+      <td>计算成本高（多次 BERT 调用）</td>
+    </tr>
+    <tr>
+      <td><strong>LIME</strong></td>
+      <td>局部线性近似（启发式）</td>
+      <td>排序词列表</td>
+      <td>需要自定义掩码（如随机替换同义词）</td>
+      <td>理论保证弱；线性近似在非线性区域不准</td>
+    </tr>
+    <tr>
+      <td><strong>Integrated Gradients (IG)</strong></td>
+      <td>路径积分（Aumann-Shapley）</td>
+      <td>排序词列表或热力图</td>
+      <td>可直接使用（路径积分从零嵌入到实际嵌入）</td>
+      <td>基线选择敏感；从零到目标可能经过 unrealistic 的嵌入</td>
+    </tr>
+    <tr>
+      <td><strong>Attention Weights</strong></td>
+      <td>无严格理论保证</td>
+      <td>Attention 矩阵热力图</td>
+      <td>原生支持（直接从 self-attention 层提取）</td>
+      <td>Attention ≠ explanation (Jain &amp; Wallace, 2019)；只反映信息路由而非重要性</td>
+    </tr>
+    <tr>
+      <td><strong>Gradient × Input</strong></td>
+      <td>一阶泰勒展开</td>
+      <td>输入空间热力图</td>
+      <td>通用（任何可微模型）</td>
+      <td>噪声大；仅捕捉局部线性行为</td>
+    </tr>
+    <tr>
+      <td><strong>SHAP（原始）</strong></td>
+      <td>Shapley 值</td>
+      <td>Force/Waterfall/Summary Plot</td>
+      <td>无适配——零值掩码导致 OOD 问题</td>
+      <td>不适于文本/序列数据</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>TransSHAP 的独特定位：</strong>它是唯一一个同时满足 (a) Shapley 值公理系统的理论严格性、(b) 为文本数据设计的掩码策略（[MASK] 替换）、(c) 保持上下文关系的顺序可视化的解释方法。Integrated Gradients 有类似的理论基础（Aumann-Shapley 值），但在 Transformer 上的基线路径设计不如 [MASK] 策略自然。
+  </div>
+</div>
+
+<!-- 6. LIMITATIONS -->
+<div class="card">
+  <h2>6. 局限性与未解决问题</h2>
+
+  <h3>6.1 计算成本</h3>
+  <p>Kernel SHAP 的核心瓶颈：每个采样点 z' 需要一次完整的 BERT 前向传播。对于一个 100-token 的输入，通常需要 K=2000~5000 次评估来达到可接受的信噪比。每次 BERT forward pass 在 GPU 上约 10~50 毫秒，总计需要 <strong>20~250 秒</strong> 来解释一个样本。这在交互式应用中不可接受，在批量离线分析中也需要大量 GPU 资源。</p>
+
+  <h3>6.2 WordPiece 粒度的用户体验问题</h3>
+  <p>人类理解的是"单词"而非"子词片段"。TransSHAP 对 "surprisingly"（在 WordPiece 中分为 "surprising" + "##ly"）给出两个独立的 Shapley 值，但用户想知道的是"surprisingly 这个词的总体贡献"。简单的相加聚合（+0.07 + 0.11 = +0.18）可能合理，但没有理论保证这种聚合的合法性。</p>
+
+  <h3>6.3 Token 间相关性的忽略</h3>
+  <p>与原始 SHAP 一样，TransSHAP 在计算边际贡献时假设 token 可以独立地被 [MASK] 替换。但在实践中，n-gram 短语（如 "New York"、"long runtime"）中的 token 高度共现。同时 Mask 掉 "New" 而保留 "York" 可能产生一个 BERT 不认识的奇怪输入，使得 Shapley 值偏离真实语义。</p>
+
+  <h3>6.4 长文本的采样效率</h3>
+  <p>当文本长度增加到 200~500 tokens（BERT 的最大输入 512），采样空间 2^M 变成天文数字（2^200 ≈ 10^60）。Kernel SHAP 的采样效率在这体量上严重退化——几千次采样在 10^60 的空间中几乎为零覆盖。对于长文档分析（如安全日志、网络流量序列），这构成了根本性限制。</p>
+
+  <h3>6.5 解释的因果性问题</h3>
+  <p>Shapley 值本身是<strong>相关性量度</strong>而非因果性量度。即使 TransSHAP 正确计算了每个 token 对预测的贡献（在合作博弈的意义上），这也不意味着改变该 token 就会<strong>导致</strong>预测变化（在因果意义上）。对于安全关键应用（如 NIDS 解释），这种关联性-因果性的混淆可能导致错误的响应决策。</p>
+
+  <div class="critique-box">
+    <strong>待解决的核心矛盾：</strong>Transformer 的优势在于 self-attention 捕捉的 token 间丰富交互——但这恰恰是 Shapley 值框架最不适应的部分。Shapley 值假设贡献可以加性分解，而 Transformer 的力量来自非线性的、全对全的交互建模。TransSHAP 通过 [MASK] 策略优雅地绕过了这一问题，但本质矛盾并未消除：<strong>我们用一个加性框架（Shapley）去解释一个非加性系统（Transformer），信息损失是必然的</strong>。
+  </div>
+</div>
+
+<!-- 7. RELEVANCE TO TRAFFIC -->
+<div class="card">
+  <h2>7. 对流量预训练模型的启示</h2>
+
+  <p>TransSHAP 的设计原则可以直接迁移到网络安全领域的流量 Transformer 模型（如 ET-BERT）。两者的相似性体现在：</p>
+
+  <table>
+    <tr><th>维度</th><th>NLP BERT</th><th>Traffic BERT (ET-BERT)</th><th>TransSHAP 适配策略</th></tr>
+    <tr>
+      <td>基本单元</td>
+      <td>WordPiece token</td>
+      <td>BURST token（流量突发段）</td>
+      <td>将每个 BURST token 视为一个"特征"，进行 [MASK] 替换</td>
+    </tr>
+    <tr>
+      <td>掩码语义</td>
+      <td>[MASK] 在 MLM 预训练中优化</td>
+      <td>ET-BERT 使用类似的 Masked Traffic Modeling</td>
+      <td>[MASK] 策略可以直接继承——ET-BERT 也被训练以从上下文预测被掩码的流量段</td>
+    </tr>
+    <tr>
+      <td>序列长度</td>
+      <td>通常 50~200 tokens</td>
+      <td>通常 32~128 BURST tokens（流量包数量有限）</td>
+      <td>较短的序列降低了计算成本，Kernel SHAP 采样效率更高</td>
+    </tr>
+    <tr>
+      <td>解释目标</td>
+      <td>哪些词驱动了情感/分类</td>
+      <td>哪些流量段驱动了攻击/正常判断</td>
+      <td>识别关键恶意流量特征（如异常包长序列、特殊端口等）</td>
+    </tr>
+    <tr>
+      <td>顺序可视化</td>
+      <td>保持自然阅读顺序</td>
+      <td>保持包到达的时间顺序</td>
+      <td>时间顺序可视化——安全分析师可以看到攻击发生在哪个时间窗口</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>实际应用前景：</strong>将 TransSHAP 应用于 ET-BERT，可以使安全分析师看到一段网络流量中<strong>哪些 BURST token（即哪些时间段的流量模式）最能解释模型的"恶意/正常"判定</strong>。这对于生成取证证据、理解误报原因、以及生成对抗性流量的防御策略都具有直接价值。此外，类似于 TransSHAP 的顺序可视化，对于流量数据可以设计时间轴可视化——横轴按包到达顺序排列，颜色深度表示每个 BURST token 对攻击分类的贡献量。
+  </div>
+
+  <p>TransSHAP 对流量模型的局限性也同样存在：流量 token 之间的时间依赖性（一个包的语义取决于前后包）比文本 token 之间的句法依赖更强，这使得 Shapley 值的"独立扰动"假设在流量数据中近似度更大。但即便如此，[MASK] 替换策略仍然比零值掩码或随机替换合理得多——因为它利用了预训练模型的 mask 推理能力来填补缺失的流量信息。</p>
+</div>
+
+</div>
+</body>
+</html>

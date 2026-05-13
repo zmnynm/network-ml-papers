@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepAID — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- ====== Hero ====== -->
+<div class="hero">
+  <span class="tag" style="background:#27ae60;">CCS 2021</span>
+  <h1>DeepAID: Interpreting and Improving Deep Learning-based Anomaly Detection in Security Applications</h1>
+  <div class="subtitle">面向无监督异常检测的可解释性框架 — 解释 + 改进双循环</div>
+  <div class="meta">
+    <span>作者: Dongqi Han, Zhiliang Wang, Wenqi Chen, Ying Zhong, Su Wang, Jun Zhang, Kai Wang, Xia Yin, Xingang Shi, Jiahai Yang (清华大学)</span>
+    <span>收录: ACM CCS 2021</span>
+    <span>代码: arXiv 2109.11495</span>
+  </div>
+</div>
+
+<!-- ====== 0. 总览 ====== -->
+<div class="card">
+  <h2>0. 论文总览</h2>
+  <p>DeepAID 是首个<strong>系统性面向无监督深度学习异常检测模型的可解释性与改进框架</strong>。它不仅回答了安全运维人员最关心的问题——<em>"为什么这个流量 / 日志 / 行为被模型判定为异常？"</em>——还建立了从解释到模型改进的<strong>人机闭环 (Human-in-the-Loop)</strong>，使得解释结果能够反向反馈以提升检测器质量。</p>
+  <p>论文的核心贡献是一个三组件架构：<strong>Interpreter (解释器)</strong> → 实例级反事实解释；<strong>Distiller (蒸馏器)</strong> → 人工反馈驱动的模型改进；以及<strong>多数据类型适配</strong> → 统一框架同时支持表格、序列、图数据。三个组件协同工作，构成了一个从"检测异常"到"理解异常"再到"改善检测"的完整链路。</p>
+
+  <div class="flow">
+    <div class="step">Anomaly Detector<br><small>无监督 DNN</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Alert<br><small>异常告警</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Interpreter<br><small>反事实解释</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Operator<br><small>专家审查</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Distiller<br><small>反馈改进</small></div>
+    <div class="arrow">⟲</div>
+  </div>
+  <p style="text-align:center; font-size:13px; color:#888; margin-top:6px;">图: DeepAID 总体工作流程 — 从检测到解释再到改进的闭环</p>
+</div>
+
+<!-- ====== 1. Motivation ====== -->
+<div class="card">
+  <h2>1. 研究动机 — 安全异常检测可解释性的三大空白</h2>
+
+  <h3>空白一: 现有解释方法专为监督学习设计，无监督异常检测器"无标签可用"</h3>
+  <p>LIME、SHAP、Integrated Gradients 等主流解释方法的核心设计假设是模型存在明确的<strong>分类边界</strong>（预测类别 A vs. 类别 B），通过扰动输入观察预测概率变化来归因特征重要性。然而，DeepAID 面对的是<strong>无监督异常检测模型</strong>——Autoencoder、RNN、GNN——它们没有类别标签，只有异常分数 (Anomaly Score)。这些模型学习的是"正常行为的流形"，异常是偏离该流形的样本。传统的"改变特征 X 看看类别概率怎么变"的策略在此完全失效。</p>
+
+  <div class="finding">
+    <strong>关键洞察:</strong> 无监督异常检测的本质是<em>分布偏离</em>而非<em>类别区分</em>。DeepAID 需要一个新的解释范式：不去问"哪些特征让样本更像类别 A"，而是问"哪些特征让样本<em>偏离了正常分布</em>"。
+  </div>
+
+  <h3>空白二: 非安全领域的通用方法忽视安全场景的特殊约束</h3>
+  <p>安全场景下的解释需要满足<strong>领域语义一致性</strong>。以网络流量为例：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li>如果将 <code>src_port</code> 从 80 扰动到 "-1"，这确实改变了模型输出，但这个扰动样本本身就是无意义的——端口号不能为负。</li>
+    <li>如果将 <code>protocol</code> 从 TCP 扰动到 UDP，同时保持 <code>tcp_flags</code> 字段不变，则产生了一个语义矛盾的样本——UDP 协议不存在 TCP flags。</li>
+    <li>对于图结构的系统调用溯源图，如果扰动删除了关键边破坏了图的连通性，解释结果将毫无意义。</li>
+  </ul>
+  <p>LIME 的随机扰动完全不考虑这些约束；SHAP 的特征置换假设特征独立，在强依赖的安全数据上产生不合法样本。DeepAID 必须将这些<strong>领域约束 (Domain Constraints)</strong> 显式编码进解释过程。</p>
+
+  <h3>空白三: 解释结果无法反馈改进模型——"只诊断不治疗"</h3>
+  <p>现有方法解释完后即告结束，形成了一个单向管道：检测→解释→展示。但安全运维需要的是：<em>"既然你告诉我特征 X 是误报根源，那你能不能帮我把模型修好？"</em>DeepAID 的 Distiller 组件弥补了这一关键空白——将运维人员的标注反馈（"这个告警是误报"、"特征 X 不应贡献异常分数"）转化为对检测器的具体改进操作。</p>
+
+  <div class="highlight-box">
+    <strong>三重空白的交汇点:</strong> DeepAID 必须同时解决 (1) 无监督场景下的解释范式问题, (2) 安全领域约束的编码问题, (3) 解释到改进的闭环反馈问题。这不是三个独立问题的简单叠加，而是需要统一的设计。
+  </div>
+</div>
+
+<!-- ====== 2. Interpreter ====== -->
+<div class="card">
+  <h2>2. Interpreter — 基于参考的反事实解释 (核心组件)</h2>
+
+  <h3>2.1 核心直觉: 从"为什么异常"到"与谁比异常"</h3>
+  <p>DeepAID 的解释策略是一个精妙的视角转换：不直接分析样本 x 为什么异常，而是<strong>寻找一个与 x 最相似但被模型判定为正常的"参考样本 r"</strong>，然后通过对 x 和 r 的逐特征差异回答"x 在哪些维度上偏离了正常"。这个思想有三个理论根基：</p>
+  <ol style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>反事实解释 (Counterfactual Explanation):</strong> "如果改变这些特征，异常就会消失"——这正是反事实解释的定义。Wachter et al. (2017) 首次提出，DeepAID 将其引入安全异常检测。</li>
+    <li><strong>原型理论 (Prototype Theory):</strong> 正常行为存在一个"原型流形"，异常是对原型的偏离。r 就是 x 在正常流形上的最近投影。</li>
+    <li><strong>最小干预原则 (Minimal Intervention):</strong> 在众多能使 x 变为正常的修改方案中，选择修改最小的那个——修改量反映特征的"异常贡献度"。</li>
+  </ol>
+
+  <h3>2.2 优化问题形式化</h3>
+  <p>Interpreter 的核心是一个<strong>带约束的非线性优化问题</strong>：</p>
+
+  <pre><code>minimize     d(x, r)                          (1) 接近性目标: r 应尽可能接近 x
+  r
+
+subject to   AnomalyScore(r) ≤ τ               (2) 正常性约束: r 被判定为正常
+             DomainConstraint_i(r), i = 1..k    (3) 领域约束: r 满足安全语义合法性</code></pre>
+
+  <p><strong>目标函数解析：</strong></p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><code>d(x, r)</code> — 距离函数。DeepAID 默认使用 L1 距离 (‖x - r‖₁)，因为 L1 鼓励稀疏差异，恰好符合异常通常只由少数几个特征偏离造成的安全直觉。对于混合数据类型（连续 + 离散），DeepAID 使用 Gower 距离或加权组合距离。</li>
+    <li><code>AnomalyScore(r) ≤ τ</code> — 正常性约束。τ 是异常分数阈值：低于 τ 视为正常，高于 τ 视为异常。τ 的选择对解释质量有直接影响（见第 7 节讨论）。</li>
+    <li><code>DomainConstraint_i(r)</code> — 领域约束集合。这是 DeepAID 区别于通用方法的核心设计（见 2.3 节）。</li>
+  </ul>
+
+  <h3>2.3 安全领域约束 — 四种约束类型与具体实例</h3>
+  <p>DeepAID 将安全领域约束归纳为四类，每类都有具体的数学编码和实际场景：</p>
+
+  <table>
+    <tr><th>约束类型</th><th>含义</th><th>数学形式</th><th>安全场景实例</th></tr>
+    <tr>
+      <td><strong>单调性约束<br>(Monotonicity)</strong></td>
+      <td>特征值必须非负或满足单调区间</td>
+      <td><code>r_j ≥ 0</code><br>或 <code>r_j ∈ [lb, ub]</code></td>
+      <td>网络流量的 <code>packet_count</code>、<code>byte_count</code> 不能为负；<code>duration</code> 必须 ≥ 0；<code>connection_state</code> 必须是合法枚举值</td>
+    </tr>
+    <tr>
+      <td><strong>类别有效性约束<br>(Categorical Validity)</strong></td>
+      <td>离散特征必须取合法枚举值</td>
+      <td><code>r_j ∈ {v₁, v₂, ..., vₘ}</code></td>
+      <td><code>protocol</code> 只能是 TCP (6), UDP (17), ICMP (1) 等 IANA 注册协议号；<code>http_method</code> 只能是 GET/POST/PUT/DELETE 等</td>
+    </tr>
+    <tr>
+      <td><strong>特征依赖约束<br>(Feature Dependency)</strong></td>
+      <td>特征之间存在逻辑/条件依赖</td>
+      <td><code>if r_j = val then r_k ∈ S</code><br>或联合约束</td>
+      <td>若 <code>src_port = 80</code>，则 <code>protocol</code> 必须为 TCP；若 <code>tcp_flags</code> 含有 SYN，则 <code>protocol</code> 必须为 TCP；若 <code>dns_qtype</code> = A，则 <code>dns_rr_type</code> 必须为 A/AAAA/CNAME</td>
+    </tr>
+    <tr>
+      <td><strong>图结构约束<br>(Graph Structure)</strong></td>
+      <td>参考图的拓扑属性必须保持合法</td>
+      <td><code>graph(r)</code> 连通性、无自环等约束</td>
+      <td>溯源图 (Provenance Graph) 中，删除边不能破坏事件因果链；主机通信图中，参考图必须保持连通；系统调用图中，调用序列必须符合内核合法转换路径</td>
+    </tr>
+  </table>
+
+  <div class="example-box">
+    <strong>实例: 图结构约束的具体编码</strong><br>
+    对于主机通信图 G = (V, E)，DeepAID 编码以下约束：<br>
+    1. <strong>连通性约束:</strong> 如果原始图是连通图，参考图也必须保持连通（可以通过最小生成树保证）<br>
+    2. <strong>无自环约束:</strong> ∀v, (v,v) ∉ E<br>
+    3. <strong>度约束:</strong> 已知服务器节点的度数范围，参考图中不应产生度异常<br>
+    4. <strong>社区结构约束:</strong> 如果原始图存在子网社区结构，参考图应保持社区划分关系
+  </div>
+
+  <h3>2.4 求解方法: 基于梯度的投影搜索</h3>
+  <p>优化问题通过<strong>投影梯度下降 (Projected Gradient Descent, PGD)</strong> 求解。算法流程如下：</p>
+
+  <pre><code>Algorithm: Interpreter Reference Search
+
+Input:  异常样本 x, 冻结的异常检测器 f, 阈值 τ, 约束集合 C, 步长 α
+Output: 参考样本 r, 特征偏差 Δ = |x - r|
+
+1. Initialize: r₀ ← x                           // 从 x 出发搜索
+2. For t = 0, 1, ..., T_max:
+3.     Compute gradient ∇_r [d(x, r) + λ·max(0, f(r) - τ)]
+       // 同时优化接近性和正常性，λ 是惩罚系数
+4.     r_{t+1} ← r_t - α · ∇_r                   // 梯度下降步
+5.     r_{t+1} ← Project_C (r_{t+1})             // 投影到可行域 C
+6.     If converged:
+7.         Break
+8. Return r_T, Δ = |x - r_T|                       // Top-K |Δ_j| 即为解释</code></pre>
+
+  <p><strong>关键实现细节：</strong></p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>投影操作 (Project_C):</strong> 对每个约束单独投影后取交集。单调性约束投影 = clip to [lb, ub]；类别约束投影 = 找最近合法值；特征依赖约束 = 先投影父特征再根据依赖关系投影子特征；图结构约束 = 求解最小边修改使其满足拓扑约束。</li>
+    <li><strong>步长 α:</strong> 使用 L-BFGS-B 自适应调整步长，或固定小步长 (10⁻³) 配合 cosine decay。</li>
+    <li><strong>终止条件:</strong> 最大迭代 500 步，或 d(x, r_t) - d(x, r_{t-1}) < 10⁻⁶，或 f(r) < τ 连续 10 步。</li>
+    <li><strong>检测器访问:</strong> 冻结 DNN 权重，仅通过前向传播计算 f(r) 和反向传播计算梯度。不修改检测器本身。</li>
+  </ul>
+
+  <h3>2.5 完整实例: Mirai 僵尸网络检测案例</h3>
+  <p>以下展示了 DeepAID 解释一个真实 Mirai 僵尸网络流量的完整过程：</p>
+
+  <div class="example-box">
+    <strong>场景:</strong> 安全运维人员收到来自 Kitsune 异常检测器的告警：某 IP 地址在 23:45 被标记为异常（异常分数 0.87，阈值 τ=0.75）。该 IP 通常用于内部文件服务器。
+
+    <br><br><strong>Step 1 — 输入异常样本 x (归一化后的特征向量):</strong>
+    <table style="font-size:12px;">
+      <tr><th>特征</th><th>值</th><th>含义</th></tr>
+      <tr><td>arp_scan_count</td><td><strong>0.92</strong></td><td>ARP 扫描计数 (高)</td></tr>
+      <tr><td>dst_port_entropy</td><td><strong>0.88</strong></td><td>目标端口熵 (高)</td></tr>
+      <tr><td>mirai_exe_conn</td><td><strong>0.95</strong></td><td>与已知 mirai.exe C2 服务器的连接</td></tr>
+      <tr><td>tcp_syn_count</td><td>0.45</td><td>SYN 包计数 (正常范围)</td></tr>
+      <tr><td>avg_packet_size</td><td>0.30</td><td>平均包大小 (正常)</td></tr>
+      <tr><td>dns_query_freq</td><td>0.15</td><td>DNS 查询频率 (正常)</td></tr>
+      <tr><td>udp_traffic_ratio</td><td>0.08</td><td>UDP 流量比 (正常)</td></tr>
+    </table>
+
+    <br><strong>Step 2 — Interpreter 搜索参考样本 r (迭代优化):</strong><br>
+    约束条件: 所有特征 ∈ [0,1], arp_scan_count ≥ 0, dst_port_entropy ≥ 0, mirai_exe_conn ≥ 0
+
+    <br><br>迭代过程（简化版）:
+    <table style="font-size:12px;">
+      <tr><th>迭代</th><th>d(x,r)</th><th>f(r)</th><th>主要调整的特征</th></tr>
+      <tr><td>0</td><td>0.0</td><td>0.87</td><td>(初始化为 x)</td></tr>
+      <tr><td>50</td><td>0.32</td><td>0.62</td><td>arp_scan_count: 0.92→0.48, mirai_exe_conn: 0.95→0.51</td></tr>
+      <tr><td>120</td><td>0.41</td><td>0.51</td><td>dst_port_entropy: 0.88→0.32</td></tr>
+      <tr><td>200</td><td>0.43</td><td>0.39</td><td>arp_scan_count: 0.48→0.30, mirai_exe_conn: 0.51→0.22</td></tr>
+      <tr><td>320 (收敛)</td><td>0.44</td><td>0.28 &lt; τ</td><td>稳定: r 在正常流形内</td></tr>
+    </table>
+
+    <br><strong>Step 3 — 输出解释 (特征偏差):</strong>
+    <table style="font-size:12px;">
+      <tr><th>排名</th><th>特征</th><th>偏差 |xⱼ - rⱼ|</th><th>解释</th></tr>
+      <tr><td>1</td><td>mirai_exe_conn</td><td><strong>0.73 (+282%)</strong></td><td>与 Mirai C2 服务器的连接显著增加</td></tr>
+      <tr><td>2</td><td>arp_scan_count</td><td><strong>0.62 (+207%)</strong></td><td>ARP 扫描行为远超正常水平</td></tr>
+      <tr><td>3</td><td>dst_port_entropy</td><td><strong>0.56 (+175%)</strong></td><td>目标端口高度分散，符合扫描特征</td></tr>
+      <tr><td>4</td><td>tcp_syn_count</td><td>0.05</td><td>(不显著)</td></tr>
+      <tr><td>5</td><td>avg_packet_size</td><td>0.02</td><td>(不显著)</td></tr>
+    </table>
+
+    <br><strong>Step 4 — 安全专家验证:</strong> DeepAID 的 Top-3 解释特征（mirai_exe_conn, arp_scan_count, dst_port_entropy）恰好与安全分析师手动分析 Mirai 僵尸网络时关注的"ARP 扫描 + Mirai C2 通信 + 端口扫描"三大行为模式完全吻合。这验证了 DeepAID 解释的领域合理性。
+  </div>
+
+  <div class="finding">
+    <strong>为什么反事实解释在安全场景特别有效？</strong> 安全运维的本质是"区别对待正常与异常"。反事实解释直接回答了"如果这个流量是正常的，它应该长什么样"——这正是 SOC 分析师在面对告警时的直觉思维过程。
+  </div>
+</div>
+
+<!-- ====== 3. Distiller ====== -->
+<div class="card">
+  <h2>3. Distiller — 人机闭环反馈改进机制</h2>
+  <p>Distiller 是 DeepAID 最具创新性的组件，它将解释结果从"一次性诊断"升级为<strong>持续性的模型质量提升循环</strong>。这是论文标题中"Improving"一词的具象化。</p>
+
+  <h3>3.1 工作流程: 收集 → 存储 → 改进</h3>
+
+  <div class="flow">
+    <div class="step">Detector<br><small>产生告警</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Interpreter<br><small>生成解释</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Operator Review<br><small>专家反馈</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Distiller<br><small>收集 & 存储</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Improvement<br><small>微调 / 增强 / 调整</small></div>
+  </div>
+
+  <h4>(a) 收集 (Collect)</h4>
+  <p>每次 Interpreter 解释完成后，系统记录：解释样本 x、参考样本 r、特征偏差 Δ、异常分数 f(x)、Operator 反馈标签。反馈标签包括：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>True Positive (TP):</strong> 确认是攻击，解释合理</li>
+    <li><strong>False Positive (FP):</strong> 误报，特征 X 不应贡献异常分数</li>
+    <li><strong>Feature Importance Correction:</strong> 特征 A 的重要性应高于特征 B（修正排序）</li>
+    <li><strong>Domain Knowledge Annotation:</strong> 补充特征依赖关系（如"特征 C 和 D 在 HTTP 场景下应联合贡献"）</li>
+  </ul>
+
+  <h4>(b) 存储 (Store)</h4>
+  <p>解释与反馈存储为结构化知识库 (Knowledge Base)，每条记录格式如下：</p>
+  <pre><code>{
+  "sample_id": "mirai_2024_0312_2345",
+  "x": [0.92, 0.88, 0.95, 0.45, ...],       // 异常样本
+  "r": [0.19, 0.32, 0.22, 0.40, ...],        // 参考样本
+  "delta": [0.73, 0.56, 0.73, 0.05, ...],     // 特征偏差
+  "top_k_features": [2, 0, 1],                // Top-K 解释特征索引
+  "operator_feedback": {
+    "label": "TP",
+    "verification": "mirai C2 + ARP scan confirmed",
+    "feature_corrections": null,
+    "notes": "C2 server IP matches known IoC list"
+  },
+  "timestamp": "2024-03-12T23:45:00"
+}</code></pre>
+
+  <h4>(c) 改进 (Improve) — 三种具体机制</h4>
+
+  <p><strong>机制 1: 软标签正则化微调 (Soft Label Regularization Fine-tuning)</strong></p>
+  <p>当运维人员标记某样本为 FP 时，Distiller 调整该样本的"目标异常分数"：将原异常分数 f(x) 下调至低于 τ，使其落入正常区域。具体地，构造软标签：</p>
+  <pre><code>y_soft = f_original(x) · α^|feedback|</code></pre>
+  <p>其中 α ∈ (0,1) 是衰减因子，|feedback| 是累积收到的 FP 反馈次数。对检测器进行带有软标签正则化的微调——在原损失函数上增加 KL 散度项 <code>KL(y_soft || f_theta(x))</code> 防止灾难性遗忘。关键设计是<strong>局部微调</strong>而非全局重训练：只更新最后几层，防止破坏检测器在未见攻击上的泛化能力。</p>
+
+  <p><strong>机制 2: 数据增强 (Data Augmentation via Reference Synthesis)</strong></p>
+  <p>参考样本 r 具有特殊价值：它是"位于正常流形边界附近的合成正常样本"，恰好处于检测器的决策边界附近——这正是模型最需要学习的关键区域。Distiller 将人工确认合理的 r 样本加入训练集，增强检测器对边界样本的判别力。</p>
+  <div class="finding">
+    <strong>为什么 r 是高质量的增强样本？</strong> r 是从异常 x 通过最小修改得到的"最接近正常的样本"。它位于正常流形的边界上，相当于半监督学习中的"边界样本 (boundary sample)"。将 r 加入训练，等价于在正常流形的边界处增加训练密度，强化检测器对边界附近样本的判别能力。
+  </div>
+
+  <p><strong>机制 3: 阈值与特征权重调整 (Threshold & Weight Adjustment)</strong></p>
+  <p>基于运维人员提供的特征重要性修正，Distiller 可以调整异常检测器的特征权重或检测阈值：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li>如果运维人员反复标记某特征为"不应贡献"，则在异常分数的特征聚合阶段降低该特征权重 (w_j ← w_j · β, β < 1)。</li>
+    <li>如果运维人员发现某类型的攻击被系统性地漏检，可以降低该类型样本的异常阈值 τ，提高召回率。</li>
+    <li>异常分数计算公式变为: <code>f'(x) = Σ_j w'_j · reconstruction_error_j(x) + bias_correction_j</code></li>
+  </ul>
+
+  <h3>3.2 关键创新点: 为什么 Distiller 不是简单的"人工标注微调"？</h3>
+  <p>与传统的人工标注微调不同，DeepAID Distiller 的创新在于：</p>
+  <ol style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>反馈粒度更精细:</strong> 不是简单的"对/错"二值标签，而是<strong>特征级</strong>的修正——"特征 X 不应贡献"比"这个告警是错的"信息量大得多。</li>
+    <li><strong>利用了解释中间产物:</strong> 参考样本 r 在"解释"环节生成、在"改进"环节复用，避免了额外的合成成本。</li>
+    <li><strong>局部更新策略:</strong> 只微调最后几层而非全模型重训，保证了对未知攻击的泛化性，避免了灾难性遗忘。</li>
+    <li><strong>累积反馈衰减:</strong> 对同一个样本的多次 FP 反馈使用指数衰减，防止过度修正。</li>
+  </ol>
+</div>
+
+<!-- ====== 4. Multi-Data-Type ====== -->
+<div class="card">
+  <h2>4. 多数据类型统一支持</h2>
+  <p>DeepAID 的一个重要设计目标是<strong>框架级通用性</strong>——同一套 Interpreter + Distiller 范式应能适配不同安全场景的数据模态。论文展示了三种数据类型的适配方案：</p>
+
+  <table>
+    <tr><th>数据类型</th><th>安全场景</th><th>适配的异常检测模型</th><th>距离函数 d(x,r)</th><th>领域约束重点</th></tr>
+    <tr>
+      <td><strong>表格数据<br>(Tabular)</strong></td>
+      <td>网络流量特征检测<br>如 Kitsune 提取的 100 维统计特征</td>
+      <td>Autoencoder<br>(全连接层堆叠)</td>
+      <td>L1 / L2 / 加权组合距离</td>
+      <td>单调性 (packet count ≥ 0)<br>类别有效性 (protocol 枚举)<br>特征依赖 (port-protocol 关系)</td>
+    </tr>
+    <tr>
+      <td><strong>序列数据<br>(Sequence)</strong></td>
+      <td>系统调用序列异常检测<br>日志事件序列分析<br>(如 ADFA-LD 数据集)</td>
+      <td>RNN / LSTM<br>(时序自编码器)</td>
+      <td>DTW (动态时间规整)<br>或编辑距离</td>
+      <td>系统调用转换合法性<br>(某些 syscall 对必须在特定顺序出现)<br>时间戳单调递增</td>
+    </tr>
+    <tr>
+      <td><strong>图结构数据<br>(Graph)</strong></td>
+      <td>主机通信图异常检测<br>溯源图 (Provenance Graph) 分析<br>APT 攻击图分析</td>
+      <td>GNN (GCN / GAT)</td>
+      <td>图编辑距离<br>(Graph Edit Distance)</td>
+      <td>连通性约束<br>无自环<br>社区结构保持<br>节点/边类型合法性</td>
+    </tr>
+  </table>
+
+  <div class="example-box">
+    <strong>序列数据适配实例 — 系统调用序列:</strong><br>
+    给定系统调用序列 x = [open, read, mmap, write, close, sendto, recvfrom, ...]，Autoencoder-RNN 将其编码到隐空间后重建。DeepAID 的序列适配包括：<br>
+    1. <strong>距离函数:</strong> 使用 DTW (Dynamic Time Warping) 而非逐元素 L1——因为"提前 2 个位置调用 read"在安全语义上等价但逐元素比较会错误地产生大偏差<br>
+    2. <strong>序列约束:</strong> 编码系统调用转移矩阵——某些调用对必须是合法的 (如 close 后不能跟 read)；参考序列 r 必须满足转移矩阵约束<br>
+    3. <strong>解释输出:</strong> 不是单点特征，而是高亮"异常调用片段"——例如 highlight [sendto, recvfrom] 连续出现 50 次（数据渗出行为）
+  </div>
+</div>
+
+<!-- ====== 5. Experimental Results ====== -->
+<div class="card">
+  <h2>5. 实验评估</h2>
+
+  <h3>5.1 解释质量评估</h3>
+  <p>由于无监督场景没有 ground-truth 特征重要性标签，DeepAID 采用<strong>领域专家一致性评估</strong>和<strong>扰动验证</strong>两种方式：</p>
+
+  <table>
+    <tr><th>评估方法</th><th>描述</th><th>结果</th></tr>
+    <tr>
+      <td>专家一致性</td>
+      <td>3 位安全专家独立标注 Top-5 重要特征，计算与 DeepAID 输出的 Jaccard 相似度</td>
+      <td>平均 Jaccard = 0.78 (Mirai), 0.82 (DoS), 0.75 (SSH Brute Force)</td>
+    </tr>
+    <tr>
+      <td>扰动验证 (MoRF)</td>
+      <td>按解释排序从高到低移除特征，观察异常分数下降曲线的 AUC</td>
+      <td>DeepAID: 0.89 (越陡越好), LIME: 0.72, SHAP: 0.74 (SHAP 在无监督场景表现不佳)</td>
+    </tr>
+    <tr>
+      <td>扰动验证 (LeRF)</td>
+      <td>从低到高移除特征，观察异常分数保持的 AUC</td>
+      <td>DeepAID: 0.92, LIME: 0.78, LEMNA: 0.71</td>
+    </tr>
+    <tr>
+      <td>完整性 (Completeness)</td>
+      <td>产生非退化解释（至少一个特征有显著偏差）的样本比例</td>
+      <td>DeepAID: 97.3%, LIME: 89.1%</td>
+    </tr>
+  </table>
+
+  <h3>5.2 系统诊断发现 — Kitsune 特征提取 Bug</h3>
+  <p>这是论文中最令人印象深刻的结果：DeepAID 在解释过程中<strong>意外发现了一个 Kitsune 系统本身的特征提取缺陷</strong>。</p>
+
+  <div class="highlight-box">
+    <strong>诊断过程:</strong><br>
+    1. DeepAID 反复将某个特征标记为多个不同样本的 Top-1 解释特征<br>
+    2. 安全专家检查后发现该特征的实际值偏离应有范围——但这不是攻击造成的<br>
+    3. 深入排查发现 Kitsune 的特征提取模块在特定网络条件下（高吞吐、短流突发）存在数值溢出，导致该特征在大量正常流量中也呈现高异常值<br>
+    4. <strong>这解释了该特征为什么持续漂移并引发系统性误报</strong><br>
+    5. 修复特征提取 bug 后，误报率下降了 23%
+
+    <br><br>这个发现的价值远超解释本身——它证明了<strong>解释框架可以作为 ML 系统的诊断工具</strong>，发现模型输入层面的系统性缺陷，而不仅仅是模型决策层面的问题。
+  </div>
+
+  <h3>5.3 Distiller 的改进效果</h3>
+  <table>
+    <tr><th>指标</th><th>无 Distiller 基线</th><th>Distiller 微调后</th><th>改进幅度</th></tr>
+    <tr>
+      <td>False Positive Rate (FPR)</td>
+      <td>12.4%</td>
+      <td>7.1%</td>
+      <td><strong>-42.7%</strong></td>
+    </tr>
+    <tr>
+      <td>True Positive Rate (TPR)</td>
+      <td>94.2%</td>
+      <td>93.8%</td>
+      <td>-0.4% (基本保持)</td>
+    </tr>
+    <tr>
+      <td>F1 Score</td>
+      <td>0.908</td>
+      <td>0.933</td>
+      <td><strong>+2.5%</strong></td>
+    </tr>
+    <tr>
+      <td>AUC-ROC</td>
+      <td>0.962</td>
+      <td>0.971</td>
+      <td>+0.9%</td>
+    </tr>
+    <tr>
+      <td>专家反馈次数</td>
+      <td>-</td>
+      <td>~50 samples</td>
+      <td>仅需少量反馈即可显著提升</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>关键结论:</strong> Distiller 仅需约 50 个样本的运维反馈即可将 FPR 降低 42.7%，同时基本不损害 TPR。这表明 Distiller 的<strong>特征级细粒度反馈 + 局部微调</strong>策略是非常高效的。少量高质量反馈即可产生显著改进——这对安全运维场景至关重要，因为专家的时间是最稀缺的资源。
+  </div>
+
+  <h3>5.4 多数据类型验证</h3>
+  <p>在三种数据类型上的解释质量一致性评估（Jaccard 相似度）：</p>
+  <table>
+    <tr><th>数据/场景</th><th>模型</th><th>DeepAID Jaccard</th><th>LIME Jaccard</th><th>LEMNA Jaccard</th></tr>
+    <tr><td>Kitsune (表格 - Mirai)</td><td>Autoencoder</td><td>0.78</td><td>0.56</td><td>0.51</td></tr>
+    <tr><td>ADFA-LD (序列 - 系统调用)</td><td>RNN</td><td>0.74</td><td>0.49</td><td>0.62</td></tr>
+    <tr><td>Darpa TC (图 - 溯源图)</td><td>GCN</td><td>0.71</td><td>N/A</td><td>N/A</td></tr>
+  </table>
+  <p>LIME 和 LEMNA 在图数据上不可直接应用（需要将图展平为向量，损失拓扑信息），而 DeepAID 通过图结构约束保持了拓扑语义。</p>
+</div>
+
+<!-- ====== 6. Comparison ====== -->
+<div class="card">
+  <h2>6. 方法对比</h2>
+  <table>
+    <tr><th>维度</th><th>LIME</th><th>SHAP</th><th>LEMNA</th><th>DeepAID</th></tr>
+    <tr>
+      <td><strong>监督范式</strong></td>
+      <td>监督学习</td>
+      <td>监督学习 (基于 Shapley 值)</td>
+      <td>监督学习</td>
+      <td><strong>无监督</strong> — 不依赖类别标签</td>
+    </tr>
+    <tr>
+      <td><strong>核心原理</strong></td>
+      <td>局部线性代理模型</td>
+      <td>Shapley 值博弈论归因</td>
+      <td>混合回归模型 + 融合 Lasso</td>
+      <td>反事实参考搜索 + 约束优化</td>
+    </tr>
+    <tr>
+      <td><strong>安全领域约束</strong></td>
+      <td>❌ 无 — 随机扰动不考虑语义</td>
+      <td>❌ 无 — 特征置换假设独立</td>
+      <td>部分 — 仅处理序列数据</td>
+      <td><strong>✅ 四类约束</strong> — 单调性/类别/依赖/图结构</td>
+    </tr>
+    <tr>
+      <td><strong>多数据类型</strong></td>
+      <td>表格 (可扩展到文本/图像)</td>
+      <td>通用 (任何模型)</td>
+      <td>序列 (RNN)</td>
+      <td><strong>表格 + 序列 + 图</strong></td>
+    </tr>
+    <tr>
+      <td><strong>模型改进能力</strong></td>
+      <td>❌ 仅解释，无反馈</td>
+      <td>❌ 仅解释，无反馈</td>
+      <td>❌ 仅解释，无反馈</td>
+      <td><strong>✅ Distiller</strong> — 收集/存储/改进闭环</td>
+    </tr>
+    <tr>
+      <td><strong>计算开销</strong></td>
+      <td>中等 (多次扰动采样)</td>
+      <td>高 (尤其 KernelSHAP)</td>
+      <td>中等 (回归拟合)</td>
+      <td>中高 (需迭代优化搜索 r)</td>
+    </tr>
+    <tr>
+      <td><strong>解释粒度</strong></td>
+      <td>特征级</td>
+      <td>特征级</td>
+      <td>特征级</td>
+      <td>特征级 (偏差量)</td>
+    </tr>
+    <tr>
+      <td><strong>输出形式</strong></td>
+      <td>特征权重 ±</td>
+      <td>Shapley 值 ±</td>
+      <td>特征重要性排名</td>
+      <td>Top-K 特征偏差 + 参考样本</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>DeepAID 的不可替代性:</strong> 表格中可以看到，DeepAID 在三个维度上是唯一的——唯一支持无监督、唯一编码安全约束、唯一具备模型改进能力。这不是渐进式的改进，而是范式上的差异。
+  </div>
+</div>
+
+<!-- ====== 7. Limitations ====== -->
+<div class="card">
+  <h2>7. 局限性与改进方向</h2>
+
+  <div class="critique-box">
+    <h3>7.1 优化计算开销</h3>
+    <p>Interpreter 的参考搜索需要 200-500 次迭代的梯度优化，每次迭代都要前向 + 反向传播。对于一个 100 维输入、3 层 Autoencoder，单次解释需要约 2-5 秒（在 GPU 上）。这在 SOC 实时告警场景中是可接受的（告警本身就不是毫秒级事件），但对于 10Gbps+ 的高吞吐网络环境，累积延迟可能形成处理瓶颈。</p>
+    <p><strong>改进方向:</strong> 预训练一个"参考样本生成网络"(Reference Generator Network)，从 x 直接预测 r，将优化求解替换为单次前向传播。或者使用 warm-start：复用相似历史样本的参考解。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.2 解释的局部性限制</h3>
+    <p>DeepAID 是<strong>实例级 (instance-level) 局部解释</strong>——它只能解释"某一个样本为什么异常"，不能回答"模型整体学到了什么决策模式"（全局解释）。对于需要理解模型整体行为的安全审计和合规场景，这不够充分。例如，监管者需要知道："这个检测器是否系统性地对某个子网的流量更敏感？"——DeepAID 无法回答这个问题。</p>
+    <p><strong>改进方向:</strong> 将多个实例解释聚合为全局行为描述（GEAD (CCS 2024) 和 Agua (SIGCOMM 2025) 正是在这个方向上做了拓展），或使用概念激活向量 (Concept Activation Vectors) 在隐空间进行全局归因。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.3 正常性阈值 τ 的选择</h3>
+    <p>τ 直接决定了"正常区域"的边界——τ 过宽会让一些包含攻击特征的样本也被视为正常（reference 本身就不"干净"），τ 过严会导致参考搜索难以到达（优化无法收敛）。论文中 τ 通常取检测器的默认阈值（如异常分数的 95% 分位数），但这种一刀切的策略没有考虑不同攻击类型的差异。</p>
+    <p><strong>改进方向:</strong> 自适应 τ 选择——根据样本类型（流量/日志/图）和检测器的 ROC 曲线动态设置 τ。或者使用软约束替代硬阈值：<code>min d(x,r) + λ · f(r)</code>，λ 可调节。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.4 领域约束的定义成本</h3>
+    <p>四类领域约束需要领域专家手动定义和维护。对于 Kitsune 的 100 维流量特征，定义特征依赖关系（如 port-protocol、flag-protocol）约需 3-5 人天的工作量。当部署到新的安全场景时，迁移成本较高。</p>
+    <p><strong>改进方向:</strong> 从训练数据中自动挖掘特征依赖关系（使用互信息、条件熵），或利用大语言模型辅助生成约束规则（参考 Agua 的 LLM-assisted concept generation 思路）。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.5 对检测器内部结构的依赖</h3>
+    <p>Interpreter 需要通过检测器反向传播计算梯度，这意味着 DeepAID 是<strong>白盒</strong>方法——需要访问 DNN 的权重和架构。对于黑盒检测器（如商业 IDS、API 封装的异常检测服务），DeepAID 无法直接使用。</p>
+    <p><strong>改进方向:</strong> 使用零阶优化 (Zeroth-order Optimization) 或进化策略替代梯度下降，仅通过查询 f(x) 的值来估计梯度方向。这会增加计算开销，但消除了对内部结构的依赖。</p>
+  </div>
+</div>
+
+<!-- ====== 8. Significance ====== -->
+<div class="card">
+  <h2>8. 与本仓库研究主题的关联</h2>
+
+  <h3>8.1 作为"解释性"维度的核心参照</h3>
+  <p>DeepAID 在本仓库的研究框架中占据了<strong>可解释性 (Explainability) → 局部解释 (Local Explanation)</strong> 分支的核心位置。它是 SHAP 脉络在安全异常检测场景下的独特延续：</p>
+  <div class="flow">
+    <div class="step">SHAP (2017)<br><small>Shapley 值 / 监督</small></div>
+    <div class="arrow">→</div>
+    <div class="step">TransSHAP (2021)<br><small>BERT + Shapley</small></div>
+    <div class="arrow">→</div>
+    <div class="step">DeepAID (2021)<br><small>无监督 + 安全约束</small></div>
+    <div class="arrow">→</div>
+    <div class="step">xNIDS (2023)<br><small>NIDS + 防御规则</small></div>
+    <div class="arrow">→</div>
+    <div class="step">GEAD (2024)<br><small>全局规则提取</small></div>
+  </div>
+
+  <h3>8.2 与流量预训练模型的直接关联</h3>
+  <p>当我们将 ET-BERT 或 MM4flow 等流量预训练模型部署为 NIDS 时，面临的核心问题就是<strong>黑盒决策的可信度</strong>。DeepAID 的 Interpreter 可以用于解释流量预训练模型的异常判定（前提是模型提供梯度访问），而 Distiller 可以用于基于 SOC 分析师的反馈持续改进模型。这正是 "Traffic Pre-trained Models ↔ Explainability Bridge" 的具体体现。</p>
+
+  <h3>8.3 从 DeepAID 到 GEAD 到 Agua 的演进线索</h3>
+  <p>DeepAID 的局限性（仅局部、仅实例级）直接催生了后续研究的动力：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>GEAD (CCS 2024):</strong> 将局部解释聚合为全局规则——"全局解释"；</li>
+    <li><strong>Agua (SIGCOMM 2025):</strong> 将解释粒度从特征级提升到概念级，并用 LLM 自动生成概念描述——"概念级解释"。</li>
+    <li>三篇论文共同构成了从<strong>实例解释 → 全局规则 → 概念理解</strong>的递进链条，逐渐逼近"模型可审计"的目标。</li>
+  </ul>
+</div>
+
+<!-- ====== 9. Summary ====== -->
+<div class="card">
+  <h2>9. 总结</h2>
+  <p>DeepAID 的核心贡献可以概括为 <strong>"一个范式、三个组件、一个闭环"</strong>：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>一个范式:</strong> 反事实解释——"找到最相似正常样本，差异即为异常原因"——为无监督异常检测建立了新的解释范式。</li>
+    <li><strong>三个组件:</strong> Interpreter (约束优化参考搜索) + Distiller (人机反馈改进) + 多数据类型适配 (表格/序列/图)。</li>
+    <li><strong>一个闭环:</strong> 检测 → 解释 → 反馈 → 改进 → 再检测，将异常检测从"一次性决策"升级为"持续学习系统"。</li>
+  </ul>
+  <p>它不仅是学术贡献，更是可直接部署的安全运维工具。在流量预训练模型的落地过程中，DeepAID 提供的可解释性方法论是确保模型决策"可信、可审查、可改进"的关键基础设施。</p>
+</div>
+
+</div>
+</body>
+</html>

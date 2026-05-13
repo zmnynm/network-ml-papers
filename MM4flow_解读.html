@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MM4flow — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; background: #2980b9; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .stat-box { background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-box .num { font-size: 24px; font-weight: 800; color: var(--accent); }
+  .stat-box .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">&#8592; 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag">Pre-training</span>
+  <h1>MM4flow: A Pre-trained Multi-modal Model for Versatile Network Traffic Analysis</h1>
+  <div class="subtitle">
+    首个双模态（Raw Byte + Transmission Pattern）流量预训练模型；77.6TB真实网关流量预训练，465M样本规模；在加密隧道场景中突破单模态方法完全失效的瓶颈
+  </div>
+  <div class="meta">
+    <span>ACM CCS 2025</span>
+    <span>Luming Yang et al. (国防科技大学 & 清华 & 上海交大)</span>
+    <span>174.40M 参数</span>
+    <span>github.com/Shangshu-LAB/MM4flow</span>
+  </div>
+</div>
+
+<!-- ====== 1. 研究动机 ====== -->
+<div class="card">
+  <h2>1. 研究动机与问题定义</h2>
+
+  <h3>1.1 现有预训练模型的两大根本性局限</h3>
+
+  <p>在 MM4flow 之前，流量预训练领域已有 PERT (2020)、ET-BERT (WWW 2022)、YaTC 和 TrafficFormer (S&P 2025) 等工作。但这些工作存在两个系统性缺陷：</p>
+
+  <div class="grid-2">
+    <div class="critique-box">
+      <strong>局限一：单模态 —— 仅依赖 Raw Byte Stream</strong><br><br>
+      所有前人工作仅使用原始字节流作为唯一输入。在正常 TLS 场景下，明文握手信息（ClientHello、ServerHello、Certificate）提供了丰富的分类信号。但在<strong>加密隧道场景</strong>（VPN、代理、Tor）中：<br><br>
+      - 所有 payload（含 TLS 握手）被二次加密，byte stream 变为纯密文伪随机序列<br>
+      - 所有 payload-byte-only 方法的准确率跌至 0.03-0.06（<strong>几乎等于随机猜测</strong>）<br>
+      - 模型完全无法区分不同隧道网站的行为
+    </div>
+    <div class="critique-box">
+      <strong>局限二：预训练数据不足</strong><br><br>
+      前人方法的预训练数据规模停留在 GB 级别：<br><br>
+      - ET-BERT: ~30GB，约 1.6M 样本<br>
+      - TrafficFormer: ~18.8GB，约 0.6M 样本<br>
+      - 数据来源以公开数据集为主，协议和应用类型覆盖有限<br><br>
+      小规模数据导致模型在长尾应用、小众协议上的表征能力不足，且易过拟合训练数据的特定偏差。
+    </div>
+  </div>
+
+  <h3>1.3 MM4flow 的核心创新：双模态设计</h3>
+
+  <div class="finding">
+    <strong>核心主张：</strong>将网络流分解为两种<strong>互补的模态</strong>，分别捕获流量的<strong>内容信息</strong>和<strong>行为信息</strong>。当一种模态被加密剥夺时，另一种模态仍可独立提供分类信号。
+  </div>
+
+  <table>
+    <tr><th>模态</th><th>代表信息类型</th><th>具体表示</th><th>信息特点</th><th>受加密影响</th></tr>
+    <tr>
+      <td><strong>Raw Byte Stream</strong></td>
+      <td>内容信息 (Content)</td>
+      <td>传输层 payload 的原始字节流</td>
+      <td>静态特征；由协议规格决定；明文握手信息丰富</td>
+      <td><strong>严重</strong>：隧道场景下完全丧失</td>
+    </tr>
+    <tr>
+      <td><strong>Transmission Pattern</strong></td>
+      <td>行为信息 (Behavior)</td>
+      <td>包长度序列（含方向符号±）</td>
+      <td>动态特征；反映应用交互逻辑；加密不影响包长</td>
+      <td><strong>基本不受影响</strong>：包长度始终可见</td>
+    </tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>模态选择的核心逻辑：</strong><br>
+    - <strong>排除包头 (TCP/IP headers)：</strong>IP 地址和端口号是强识别信息 (SII)，会导致捷径学习而非语义理解。且不同网络拓扑下包头分布完全不同。<br>
+    - <strong>排除时间戳：</strong>包到达时间易受网络波动（丢包、重传、拥塞控制、路由变化）影响，跨时间/跨网络的泛化性差。<br>
+    - <strong>选择 Payload Bytes：</strong>包含 TLS 握手、DNS 查询名、HTTP 头部等受协议纠错和加密保护的"内容"信息。<br>
+    - <strong>选择 Packet Length Sequence：</strong>反映应用交互模式——视频流、网页浏览、文件下载的包长序列特征截然不同，且加密无法隐藏。
+  </div>
+
+  <h3>1.4 为什么这不是又一个"加一个特征"的工作</h3>
+
+  <p>包长度作为特征在流量分类中并不新鲜（已有 20+ 年历史）。但前人使用包长度的方式是<strong>手工聚合为统计量</strong>（均值、方差、分位数等），丢失了包长序列中的<strong>时序交互模式</strong>。MM4flow 将包长度序列视为一种独立的"语言"，通过 BERT-style 预训练学习其深层时序表示——这与简单统计特征有质的区别。</p>
+</div>
+
+<!-- ====== 2. 数据采集方案 ====== -->
+<div class="card">
+  <h2>2. 数据采集方案 —— 工程核心优势</h2>
+
+  <h3>2.1 Zeek 实时采集框架</h3>
+
+  <p>MM4flow 的数据采集方案是其最亮眼的工程贡献：</p>
+
+  <div class="flow">
+    <div class="step">交换机端口镜像</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">Zeek Frontend<br>(流量分发)</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">Zeek Workers<br>(并行分析)</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">自定义插件<br>ps.zeek + bytes.zeek</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">475.3GB 日志<br>(流级别)</div>
+  </div>
+
+  <h3>2.2 关键数字</h3>
+
+  <div class="grid-2">
+    <div class="stat-box">
+      <div class="num">77.6 TB</div>
+      <div class="label">一周原始 pcap 数据量</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">475.3 GB</div>
+      <div class="label">处理后日志大小 (仅 0.6%)</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">465M</div>
+      <div class="label">有效流样本数</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">0 小时</div>
+      <div class="label">离线处理开销 (实时解析)</div>
+    </div>
+  </div>
+
+  <h3>2.3 与传统方法的对比</h3>
+
+  <table>
+    <tr><th>方案</th><th>存储开销</th><th>处理时间</th><th>可行性</th></tr>
+    <tr>
+      <td><strong>传统离线方案</strong>（先存 pcap，后批量处理）</td>
+      <td>~79 TB</td>
+      <td>~1540 小时</td>
+      <td>不切实际</td>
+    </tr>
+    <tr>
+      <td><strong>MM4flow Zeek 方案</strong>（实时解析，仅存结构化日志）</td>
+      <td>~475 GB</td>
+      <td>实时（零离线开销）</td>
+      <td>可持续运行</td>
+    </tr>
+  </table>
+
+  <h3>2.4 数据清洗策略</h3>
+
+  <div class="critique-box">
+    <strong>丢弃 "Mouse Flows"：</strong>排除非零 payload 包数 &lt; 5 的流。理由是过短的流缺乏足够的行为信息供 PS 模态学习完整的包长交互模式。<br><br>
+    <strong>潜在问题：</strong>这改变了数据分布——真实网络中存在大量短流（DNS 查询 2-4 包、快速失败的 TCP 连接等）。丢弃它们意味着模型从未见过此类流量，在真实部署中可能产生意外行为。论文未报告丢弃比例，这是数据透明性的一个缺失。
+  </div>
+</div>
+
+<!-- ====== 3. Tokenization 设计 ====== -->
+<div class="card">
+  <h2>3. Tokenization 设计 —— 关键方法论贡献</h2>
+
+  <h3>3.1 Payload Byte Stream: Byte Tokenization vs Bigram</h3>
+
+  <p>这是 MM4flow 在方法论上最精细的论证之一。前人工件（ET-BERT、TrafficFormer）一律使用 <strong>bigram tokenization</strong>：将相邻两字节合为一个 4 位十六进制数作为 token（如 <code>0x06D6</code>），词典大小可达 65536。</p>
+
+  <p>MM4flow 选择 <strong>byte tokenization</strong>：每个字节独立为 token（0x00-0xFF），共 256 个基础 token + 5 个特殊 token ([CLS], [SEP], [MASK], [PAD], [UNK]) = 261 个 token。</p>
+
+  <h4>为什么 Bigram 不行？——一个具体的密码学反例</h4>
+
+  <p>考虑以下 TLS ClientHello 片段中的 bigram 序列及其掩码预测：</p>
+
+  <pre>
+原始字节序列（十六进制）：
+16 03 01 02 00 01 00 01 FC 03 03 ...
+
+Bigram Tokenization（相邻两字节合并）：
+[1603] [0301] [0200] [0100] [01FC] [0303] ...
+
+假设 mask 掉第三个 token [0200]：
+  前驱: [0301] → 后缀 "01"
+  后继: [0100] → 前缀 "01"
+  拼接: "01" + "01" → 推断出原 token 为 [0100]（而非 [0200]？不对，该重算）
+
+更精确的例子（论文 Figure 4 的核心论证）：
+原始字节：... 06 D6 01 00 ...
+Bigram tokens: [06D6] [0100]
+
+Mask [06D6]：
+  前驱: 无（第一个token）
+  后继: [0100] → 前缀 "01"
+  → 无法推断（正确）
+
+Mask [0100]：
+  前驱: [06D6] → 后缀 "D6"
+  后继: 无
+  → 也无法直接推断
+
+但更典型的攻击场景：
+原始字节：... 45 0B 12 06 D6 01 00 1A ...
+Bigram tokens: [450B] [1206] [D601] [001A] ...
+
+Mask [D601]：
+  前驱: [1206] → 后缀 "06"
+  后继: [001A] → 前缀 "00"
+  → [??01] 需要后缀 "01" + 前缀 "D6"
+  → 从前驱后缀 "06" 无法直接推断
+</pre>
+
+  <p>表面上看 bigram 的后缀重叠为 1 字节，似乎不能直接推断。但论文的论证更深刻：</p>
+
+  <div class="finding">
+    <strong>论文 Figure 4 的核心论证：</strong><br>
+    考虑三个连续的 bigram token: <strong>[06D6] [0100] [D601]</strong><br><br>
+    如果 mask 中间 token [0100]：<br>
+    - 前驱 [06D6] 贡献后缀 <code>D6</code><br>
+    - 后继 [D601] 贡献前缀 <code>D6</code><br>
+    - <strong>前驱后缀 = 后继前缀 = D6</strong><br>
+    - 模型只需学习"前驱后缀 = 后继前缀"这个恒等式，就能直接推断 mask token = [D601]<br>
+    - <strong>这个推断完全不涉及流量语义，纯粹是 tokenization 机制导致的规律</strong><br><br>
+    更一般地：对于任意三个连续 bigram token [AB][CD][EF]，mask [CD] 意味着 C = B 且 D = E，可直接从前后 token 推断。Byte tokenization 不存在这一捷径——每个 token 独立，必须通过上下文语义来预测。
+  </div>
+
+  <h4>Byte Tokenization 的具体方案</h4>
+
+  <pre>
+输入构造（以 TLS 流为例）：
+┌─────────────────────────────────────────────────────────────┐
+│ [CLS] │ 上行前 256B 的 byte tokens │ [SEP] │ 下行前 256B 的 byte tokens │ [SEP] │
+└─────────────────────────────────────────────────────────────┘
+                      总序列长度: 1 + 256 + 1 + 256 + 1 = 515 tokens
+                      实际截断或 padding 至 512 tokens
+
+上行前 256 字节（ClientHello 的起始部分，具体内容取决于实际 TLS 版本和扩展）：
+16 03 01 02 00 01 00 01 FC 03 03 ...
+│  │  │  │  └─ 长度字段的高字节
+│  │  │  └─── 长度字段的低字节（TLS Record Length）
+│  │  └────── TLS 版本号 1.0（在 TLS 1.3 的 legacy_version 字段中）
+│  └───────── TLS 主版本号（3 = TLS 1.x）
+└──────────── TLS Record Type: 22 = Handshake
+
+每个字节独立 token：
+Token 0: [CLS]
+Token 1: 0x16 (22, Handshake Record)
+Token 2: 0x03 (3, TLS Major Version)
+Token 3: 0x01 (1, TLS Minor Version)
+...
+Token 256: 0x?? (第 256 个字节)
+Token 257: [SEP]
+Token 258: 0x16 (下行 ServerHello 的第一个字节)
+...
+Token 511: 0x?? (下行第 256 字节)
+</pre>
+
+  <div class="highlight-box">
+    <strong>设计权衡：</strong><br>
+    Byte tokenization 的优点：消除 bigram 推断捷径，迫使模型学习真正的流量语义。<br>
+    Byte tokenization 的代价：<br>
+    - 序列长度翻倍（256 bytes → 256 tokens，而 bigram 只需 128 tokens）<br>
+    - 词典极小（261 vs 65536），单 token 语义承载量极低<br>
+    - 自注意力 O(n²) 成本更高<br>
+    - <strong>论文缺失：</strong>未做 byte vs bigram 的消融实验来定量证明 byte 的优势
+  </div>
+
+  <h3>3.2 Packet Length Sequence: 带方向的包长 Tokenization</h3>
+
+  <pre>
+定义：
+  token_value = payload_length       （绝对值，范围 1-1500）
+  sign         = + (上行/upstream) 或 - (下行/downstream)
+
+  上行包（客户端→服务器）: positive token
+  下行包（服务器→客户端）: negative token
+
+Token 空间：
+  上行: token = payload_length              (1 到 1500)
+  下行: token = payload_length + 1500       (1501 到 3000)
+  + 5 特殊 token: [CLS], [SEP], [MASK], [PAD], [UNK]
+  总词典大小: 3000 + 5 = 3005
+
+过滤规则：
+  排除无 payload 的功能包（纯 SYN、SYN-ACK、ACK、FIN、RST 等）
+  → 保留的每个 token 都携带有效 payload 信息
+
+示例：一个 HTTPS 流的 PS 序列
+  原始包序列（按时间）：
+    1. 上行 SYN         → 丢弃 (无 payload)
+    2. 下行 SYN-ACK     → 丢弃 (无 payload)
+    3. 上行 ACK         → 丢弃 (无 payload)
+    4. 上行 TLS ClientHello   → payload=583B  → token=+583
+    5. 下行 ACK               → 丢弃 (无 payload)
+    6. 下行 TLS ServerHello   → payload=1460B → token=-1460
+    7. 下行 TLS Certificate   → payload=1460B → token=-1460
+    8. 下行 TLS Cert (cont.)  → payload=1460B → token=-1460
+    9. 下行 TLS ServerFinished → payload=98B  → token=-98
+   10. 上行 ACK               → 丢弃 (无 payload)
+   11. 上行 TLS ClientFinished → payload=51B  → token=+51
+   12. 上行 HTTP GET          → payload=500B  → token=+500
+   ...
+
+  最终 PS 序列（仅保留有 payload 的包，最多 256 个）：
+  [+583, -1460, -1460, -1460, -98, +51, +500, ...]
+</pre>
+
+  <div class="finding">
+    <strong>这种编码的优雅之处：</strong><br>
+    1. 方向信号自动内嵌：绝对值相同、方向相反的包（如 +1460 vs -1460）在 token 空间中相距 1500，模型可以独立学习两个方向的包长模式。<br>
+    2. 功能包自然过滤：SYN/ACK 等不含 payload 的控制包被排除，序列更紧凑，信息密度更高。<br>
+    3. 保留顺序信息：包按到达时间排列，位置编码隐含了时间关系。<br>
+    4. 对padding/分片敏感：TLS record 的分片会在 PS 中产生特定的连续包长模式（如 +1460, +40 表示一个 1500B record 被分两个 TCP segment）。<br>
+    5. 对加密鲁棒：无论 payload 是否加密，包长度始终可见并反映应用行为。
+  </div>
+</div>
+
+<!-- ====== 4. 模型架构 ====== -->
+<div class="card">
+  <h2>4. 模型架构</h2>
+
+  <h3>4.1 双 BERT 编码器</h3>
+
+  <table>
+    <tr><th>模块</th><th>基座架构</th><th>层数</th><th>隐藏维度</th><th>注意力头数</th><th>参数量</th><th>输入</th></tr>
+    <tr>
+      <td><strong>BERT-bytes</strong></td>
+      <td>BERT-base</td>
+      <td>12</td>
+      <td>768</td>
+      <td>12</td>
+      <td>~87M</td>
+      <td>512 byte tokens</td>
+    </tr>
+    <tr>
+      <td><strong>BERT-ps</strong></td>
+      <td>BERT-base</td>
+      <td>12</td>
+      <td>768</td>
+      <td>12</td>
+      <td>~87M</td>
+      <td>&le;256 PS tokens</td>
+    </tr>
+    <tr>
+      <td colspan="6"><strong>总参数量</strong></td>
+      <td><strong>174.40M</strong></td>
+    </tr>
+  </table>
+
+  <h3>4.2 为什么 Uni-modal 预训练而非 Joint Pre-training？</h3>
+
+  <div class="highlight-box">
+    <strong>核心争议点 —— MM4flow 的立场：</strong><br>
+    多模态联合训练存在<strong>模态偏差（Modality Bias）</strong>问题：模型会过度依赖"更容易学习"的模态而忽略另一模态。论文引用多篇文献（Cadene 2019, Gat 2021, Wang 2020, Wu 2022 等）说明：<br><br>
+    - Payload byte stream 是 "easier-to-learn modality"<br>
+    - 如果 joint training，模型会偏向 byte 侧，PS 侧的特征提取不充分<br>
+    - 策略：先让各自模态在单模态 MLM 预训练中充分学习，再在微调阶段通过 cross-attention 融合
+  </div>
+
+  <h3>4.3 预训练任务</h3>
+
+  <p>仅使用 <strong>MLM (Masked Language Modeling)</strong> 一个任务，不使用 ET-BERT 的 SBP 或 TrafficFormer 的 SODF：</p>
+
+  <ul style="margin-left:20px;">
+    <li><strong>Mask 率：</strong>15%（即每 100 个 token 随机 mask 15 个）</li>
+    <li><strong>替换策略（80-10-10）：</strong>
+      <ul>
+        <li>80% 替换为 [MASK] token</li>
+        <li>10% 替换为随机 token</li>
+        <li>10% 保持不变</li>
+      </ul>
+    </li>
+    <li><strong>损失函数：</strong>交叉熵（仅对被 mask 位置计算）</li>
+  </ul>
+
+  <div class="finding">
+    <strong>为什么仅用 MLM？</strong><br>
+    论文认为 SBP/SODF 等辅助任务（判断两个 BURST 是否同源/同向/同流）可以被 MLM 隐式覆盖——序列中的 token 预测已经隐含了对方向、顺序和流归属的学习。去掉这些任务简化了预训练流程。
+  </div>
+
+  <h3>4.4 预训练规模对比</h3>
+
+  <table>
+    <tr><th>方法</th><th>PCAP 大小</th><th>样本数</th><th>训练 Epochs</th><th>数据来源</th></tr>
+    <tr><td>ET-BERT</td><td>30 GB</td><td>~1.6M</td><td>未明确</td><td>公开 + CSTNET</td></tr>
+    <tr><td>TrafficFormer</td><td>18.8 GB</td><td>0.6M</td><td>160 epochs</td><td>公开数据集</td></tr>
+    <tr><td style="background:#eaf2f8;"><strong>MM4flow</strong></td><td style="background:#eaf2f8;"><strong>77.6 TB</strong></td><td style="background:#eaf2f8;"><strong>465M</strong></td><td style="background:#eaf2f8;">2 epochs</td><td style="background:#eaf2f8;">真实网关流量</td></tr>
+  </table>
+
+  <div class="critique-box">
+    <strong>注意：仅训练了 2 个 Epochs。</strong>这是数据规模与训练充分性之间的核心张力。BERT 在 Wikipedia + BookCorpus 上训练了 40 epochs。对于需要学习 token 级别关系的 MLM 任务，465M 样本仅看 2 次可能不足以充分收敛。论文未提供预训练 loss 收敛曲线，这一信息的缺失使得"2 epochs 是否足够"无法验证。
+  </div>
+</div>
+
+<!-- ====== 5. 多模态融合模块 ====== -->
+<div class="card">
+  <h2>5. 多模态融合模块 —— Cross-Attention 详解</h2>
+
+  <h3>5.1 融合时机的选择</h3>
+
+  <div class="finding">
+    MM4flow 的融合策略是 <strong>Late Fusion</strong>：预训练阶段两个编码器完全独立，仅在微调阶段引入 cross-attention 做跨模态交互。这一设计的动机是避免模态偏差，但代价是跨模态关联从未在 465M 样本的预训练数据上学习过。
+  </div>
+
+  <h3>5.2 Cross-Attention 融合的逐步计算</h3>
+
+  <pre>
+Step 1: 获取单模态输出
+  X_bytes = BERT-bytes(byte_sequence)    # shape: (512, 768)
+  X_ps    = BERT-ps(ps_sequence)         # shape: (256, 768)
+
+Step 2: 提取 [CLS] token 表征
+  cls_bytes = X_bytes[0]                  # (768,)
+  cls_ps    = X_ps[0]                     # (768,)
+
+Step 3: 构造 Cross-Attention 的 Query
+  Q_concat = concat([X_bytes, X_ps], dim=0)  # shape: (512+256, 768) = (768, 768)
+
+  这个 concat query 包含了两个模态的全部 token 的信息。
+  论文的动机：让每个 token "自己决定"关注多少跨模态信息 vs 同模态信息。
+
+Step 4: Cross-Attention <strong>在 bytes 侧</strong>
+  Q = Linear_Q(Q_concat)        # (768, 768) → (768, 768)
+  K = Linear_K(X_bytes)         # (512, 768) → (512, 768)
+  V = Linear_V(X_bytes)         # (512, 768) → (512, 768)
+
+  Attention_scores = Q × K^T / √768     # (768, 512)
+  Attention_weights = softmax(Attention_scores)
+  Output_bytes = Attention_weights × V  # (768, 768)
+
+  → X_bytes_fused = Output_bytes 的第一部分（对应原 X_bytes 的融合表征）
+
+Step 5: Cross-Attention <strong>在 PS 侧</strong>（对称地）
+  K = Linear_K(X_ps)            # (256, 768) → (256, 768)
+  V = Linear_V(X_ps)            # (256, 768) → (256, 768)
+
+  Attention_scores = Q × K^T / √768     # (768, 256)
+  Attention_weights = softmax(Attention_scores)
+  Output_ps = Attention_weights × V     # (768, 768)
+
+  → X_ps_fused = Output_ps 的第二部分（对应原 X_ps 的融合表征）
+
+Step 6: 全局表征融合
+  cls_bytes_fused = X_bytes_fused[0]    # bytes 侧的 [CLS] (融合后)
+  cls_ps_fused    = X_ps_fused[0]       # PS 侧的 [CLS] (融合后)
+  cls_concat = concat([cls_bytes_fused, cls_ps_fused])  # (1536,)
+  logits = FC_layer(cls_concat)          # (num_classes,)
+</pre>
+
+  <h3>5.3 消融实验的发现</h3>
+
+  <table>
+    <tr><th>融合方式</th><th>描述</th><th>相对性能</th></tr>
+    <tr><td>w/o CA (简单拼接)</td><td>[CLS]_bytes ∥ [CLS]_ps 直接拼接后分类</td><td>Baseline</td></tr>
+    <tr><td>Cross-Attention</td><td>如上详细计算</td><td>优于简单拼接</td></tr>
+  </table>
+
+  <div class="critique-box">
+    <strong>交叉注意力的核心矛盾：</strong><br>
+    论文声称 "some tokens require cross-modal information, while others are only relevant to their own modality"，因此用 concat query 让每个 token 自主选择。但实际实现中：<br><br>
+    1. Q 已经包含了对面模态的全部信息（通过 concat），这意味着"自主选择"被预先污染<br>
+    2. 这种设计近似于 self-attention on concatenated sequence，但实现更复杂<br>
+    3. 缺失与其他融合策略的消融：self-attention on concat, gated fusion, bilinear pooling 等均未对比<br>
+    4. Cross-attention 的 softmax 产生<strong>密集注意力</strong>——每个 token 对所有对面 token 都有非零关注，在无关 token 间的注意力形成了背景噪声
+  </div>
+</div>
+
+<!-- ====== 6. 两阶段微调 ====== -->
+<div class="card">
+  <h2>6. 两阶段微调策略</h2>
+
+  <table>
+    <tr><th>阶段</th><th>参数状态</th><th>Epochs</th><th>学习率</th><th>目的</th></tr>
+    <tr>
+      <td><strong>Phase 1 (Warm-up)</strong></td>
+      <td>冻结预训练参数，仅更新分类头 + cross-attention 层</td>
+      <td>40</td>
+      <td>正常</td>
+      <td>防止随机初始化的分类头梯度破坏预训练表征</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2 (Full Fine-tuning)</strong></td>
+      <td>解冻全部参数</td>
+      <td>20</td>
+      <td>更低</td>
+      <td>端到端联合优化，实现任务特定的表征适配</td>
+    </tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>这引出了一个关键的方法论争议：</strong>如果两阶段微调中的 Phase 2 解冻了所有参数，这本质上等同于"用预训练权重做初始化然后端到端重新训练"。Sugar (SIGCOMM 2025) 的核心批评之一就是：<strong>如果预训练表征真的那么好，冻结编码器就应该有竞争力</strong>。MM4flow 没有报告 frozen encoder + 仅训分类头的性能——这是一个关键缺失实验。
+  </div>
+
+  <h3>6.1 下游评估数据集</h3>
+
+  <table>
+    <tr><th>数据集</th><th>任务类型</th><th>类别数</th><th>每类样本数</th><th>核心挑战</th></tr>
+    <tr><td>DataCon2020</td><td>加密恶意软件检测</td><td>2</td><td>5000</td><td>二分类，类别均衡</td></tr>
+    <tr><td>DataCon2021-p1</td><td>加密代理分类</td><td>6</td><td>500</td><td>中类别数</td></tr>
+    <tr><td><strong>DataCon2021-p2</strong></td><td><strong>加密隧道网站识别</strong></td><td><strong>22</strong></td><td><strong>1000</strong></td><td><strong>隧道加密，byte模态几乎无用</strong></td></tr>
+    <tr><td>Browser</td><td>浏览器分类</td><td>4</td><td>5000</td><td>行为特征丰富</td></tr>
+    <tr><td>NUDT_MobileTraffic</td><td>移动应用识别</td><td>300</td><td>200</td><td>大类别数，小样本</td></tr>
+    <tr><td>CSTNET-TLS1.3</td><td>TLS 1.3 网站识别</td><td>80</td><td>300</td><td>最现代加密</td></tr>
+  </table>
+</div>
+
+<!-- ====== 7. 关键结果 ====== -->
+<div class="card">
+  <h2>7. 关键实验结果</h2>
+
+  <h3>7.1 主要结果</h3>
+
+  <table>
+    <tr><th>任务 (Dataset)</th><th>BERT-ps Acc</th><th>BERT-bytes Acc</th><th>MM4flow Acc</th><th>最佳Baseline Acc</th><th>提升</th></tr>
+    <tr>
+      <td>DataCon2020 (恶意软件)</td>
+      <td style="color:#c0392b;">0.9493</td>
+      <td style="color:#27ae60;">0.9721</td>
+      <td><strong>0.9734</strong></td>
+      <td>0.9278</td>
+      <td>+4.56%</td>
+    </tr>
+    <tr>
+      <td>DataCon2021-p1 (代理分类)</td>
+      <td>0.9680</td>
+      <td>0.8146</td>
+      <td><strong>0.9731</strong></td>
+      <td>0.9265</td>
+      <td>+4.66%</td>
+    </tr>
+    <tr style="background:#fdf2f2;">
+      <td><strong>DataCon2021-p2 (隧道网站)</strong></td>
+      <td><strong style="color:#27ae60;">0.9026</strong></td>
+      <td style="color:#c0392b;">0.0471</td>
+      <td><strong>0.9011</strong></td>
+      <td>0.0523</td>
+      <td>+84.88%</td>
+    </tr>
+    <tr>
+      <td>Browser (浏览器)</td>
+      <td>0.8752</td>
+      <td style="color:#27ae60;">0.9905</td>
+      <td><strong>0.9929</strong></td>
+      <td>0.9706</td>
+      <td>+2.23%</td>
+    </tr>
+    <tr>
+      <td>NUDT_MobileTraffic (300类)</td>
+      <td>0.8193</td>
+      <td>0.8898</td>
+      <td><strong>0.9111</strong></td>
+      <td>0.8583</td>
+      <td>+5.28%</td>
+    </tr>
+    <tr>
+      <td>CSTNET-TLS1.3 (80类)</td>
+      <td>0.9757</td>
+      <td>0.9633</td>
+      <td><strong>0.9826</strong></td>
+      <td>0.9209</td>
+      <td>+6.17%</td>
+    </tr>
+  </table>
+
+  <h3>7.2 最关键的发现：加密隧道任务上的两极表现</h3>
+
+  <div class="example-box">
+    <strong>DataCon2021-p2 (加密隧道网站识别，22 类)：</strong><br><br>
+    - <strong>所有 payload-byte-only 方法：</strong>Acc ~0.03-0.06（几乎等于随机）<br>
+    - <strong>纯 BERT-ps：</strong>Acc = 0.9026（极高！证明了 PS 模态独立承载了几乎全部分类信息）<br>
+    - <strong>MM4flow 完整模型：</strong>Acc = <strong>0.9011</strong>（<span style="color:#c0392b;">比纯 PS 还低 0.0015！</span>）<br><br>
+    这揭示了一个深刻问题：<strong>当 byte 模态完全无用（隧道加密下 payload 为伪随机数）时，cross-attention 融合非但没有帮助，反而因为无用字节序列的噪声污染而轻微损害性能。</strong>模型没有学到"当 byte 无意义时忽略它"。
+  </div>
+
+  <h3>7.3 小样本泛化能力</h3>
+
+  <div class="finding">
+    MM4flow 展示了优秀的 few-shot 泛化能力：在多个任务上，仅需 <strong>10-30% 的标注数据</strong>即可达到全量数据训练下的同等水平。这一特性对于实际部署（标注成本高昂）非常有价值。这部分优势来自大规模的通用预训练——模型已经学会了流量的通用表示，微调时仅需少量样本即可适配特定任务。
+  </div>
+
+  <h3>7.4 嵌入可视化</h3>
+
+  <p>t-SNE 可视化揭示了两个关键发现：</p>
+  <ul style="margin-left:20px;">
+    <li>预训练后两模态嵌入均表现出初步可分性（聚类可见），说明预训练学到了语义</li>
+    <li>不同任务的两模态可分性不同：payload 内容丰富的任务（Browser, DataCon2020）bytes 模态更可分；隧道任务中 bytes 完全不可分，PS 模态承载全部分离信息</li>
+  </ul>
+</div>
+
+<!-- ====== 8. 深度批判性分析 ====== -->
+<div class="card">
+  <h2>8. 深度批判性分析</h2>
+
+  <h3>问题 1：时间覆盖的结构性不对称 —— 最深层的问题</h3>
+
+  <div class="critique-box">
+    <strong>这是 MM4flow 多模态设计中最深层但最容易被忽视的缺陷。</strong>
+  </div>
+
+  <pre>
+一个典型 HTTPS 网页加载流（80 个有 payload 的包，持续 ~3 秒）的时间覆盖：
+
+Byte 模态（BERT-bytes）：
+  上行前 256B ────┐
+  下行前 256B ────┤  时间跨度: ~100ms, 覆盖前 ~2-3 个包
+                  │  内容: ClientHello 前256B + ServerHello 前256B
+                  │
+PS 模态（BERT-ps）：
+  +1460, -1460, -1460, -1460, -98, +51, +500, -1460, -1460, -100,
+  +50, -1460, +200, -800, ...（共 80 个包）
+  时间跨度: ~3 秒, 覆盖全部有 payload 的包
+  </pre>
+
+  <table>
+    <tr><th>指标</th><th>Byte 模态</th><th>PS 模态</th><th>比值</th></tr>
+    <tr><td>Token 数量</td><td>512</td><td>&le;256</td><td>2:1</td></tr>
+    <tr><td>覆盖包数</td><td>~2-3 个</td><td>最多 256 个</td><td>~1:100</td></tr>
+    <tr><td>时间跨度</td><td>~100ms</td><td>数秒至数十秒</td><td>~1:50</td></tr>
+  </table>
+
+  <h4>具体后果 A：TLS ClientHello 的 SNI 可能被截断</h4>
+
+  <pre>
+TLS 1.3 ClientHello 典型结构（总长 300-500B）：
+
+偏移    内容                        在 256B 内？
+0-4     TLS Record Header (5B)      ✓
+4-38    Handshake Header (34B)      ✓
+38-     Cipher Suites (50-200B)     ✓ (前端部分)
+        Extensions:
+138-    supported_versions (7B)     ✓
+145-    supported_groups (30B)      ✓
+175-    key_share (70-100B)         ✓ (可能接近边界)
+245-    signature_algorithms (20B)  ✓/✗ (临界位置)
+265-    <strong>SNI (~80B)</strong>               <strong>✗ (被截断！)</strong>
+        ALPN (10B)                  ✗
+        ...
+
+SNI (Server Name Indication) 是 TLS 流量分类中<strong>最重要的单字段信号</strong>，
+它直接告诉模型用户在访问哪个域名。但其位置在 ClientHello 的偏后部分，
+经常落在 200-350B 范围。256B 的截断导致：
+- 短扩展列表的 ClientHello: SNI 完整包含 → byte 模态有效
+- 长扩展列表的 ClientHello: SNI 被截断 → byte 模态失去最重要信号
+→ 这是一个<strong>系统性偏差</strong>，而非随机噪声。
+  </pre>
+
+  <h4>具体后果 B：Server Certificate 几乎完全丢失</h4>
+
+  <pre>
+下行 256B 中实际包含的内容：
+  TLS Record Header         5B
+  ServerHello               40-60B
+  Certificate 消息头         8B
+  第一个证书的前 ~140B       ← 仅此而已！
+
+丢失的内容：
+  第一个证书的剩余 1000-2000B    ← 含 CN, SAN, Issuer
+  中间 CA 证书                   ← 证书链信息
+  Certificate Verify (~260B)
+  Finished (48B)
+
+证书链是"未加密内容"中最丰富的信源，但 256B 窗口让它几乎完全不可用。
+  </pre>
+
+  <h4>具体后果 C：Cross-Attention 中的"时间旅行"</h4>
+
+  <pre>
+考虑 Cross-Attention 的计算：
+  Q = concat([X_bytes, X_ps])  ← 包含了 PS 侧的第 200 个 token
+  CrossAttention(X_bytes, Q):
+    byte_token_50（ClientHello 的第 50 字节，来自 0ms）
+      ↓ 通过 cross-attention 权重
+      ↓ 关注 ps_token_200（流尾部的第 200 个包，来自 3s 后）
+      ↓
+      → 模型学到 "0xFC (TLS 密码套件) + 流尾部 -100 包 → 类别 A"
+
+但这是一个 <strong>虚假关联（spurious correlation）</strong>：
+- 0xFC 是 ClientHello 的密码套件字段
+- -100 是流尾部的服务器小响应
+- 两者之间没有因果关联
+- 换一个网络环境，流尾部的包长模式可能完全不同
+  </pre>
+
+  <h3>问题 2：256B 截断的根本原因是 BERT 的 512 token 限制</h3>
+
+  <div class="critique-box">
+    256 字节/方向的限制本质上是 <strong>BERT 512 token 限制 + 自注意力 O(n²) 成本</strong>的产物，而非对流量特性的深思熟虑。如果使用 Longformer/BigBird（稀疏注意力，可处理 4096+ tokens）、分块策略或层次化编码（CNN 局部 + Transformer 全局），可以大幅扩大覆盖范围。<br><br>
+    论文没有讨论这些替代方案，也没有做 "256B vs 512B vs 1024B" 的消融实验。
+  </div>
+
+  <h3>问题 3：仅训练 2 个 Epochs 可能不足</h3>
+
+  <div class="critique-box">
+    465M 样本 × 2 epochs。对比：BERT 在 Wikipedia + BookCorpus 上训练了 40 epochs。对于 MLM 这种需要学习 token 级别关系的任务，2 个 epoch 可能不足以充分收敛。<br><br>
+    论文没有提供预训练 loss 收敛曲线，仅引用了 TrafficFormer 的收敛数据（"loss tends to stabilize at 120,000 steps"）。MM4flow 自身的收敛情况未经验证。此外，一周的数据是否足够多样（日周期、周周期、突发事件的偏差）也值得讨论。
+  </div>
+
+  <h3>问题 4：没有与浅层 Baseline 比较</h3>
+
+  <div class="critique-box">
+    Sugar (SIGCOMM 2025) 论文的核心发现之一：在 per-flow split 下，RF/XGBoost + 手工设计的包头特征可以持平甚至超越大规模 DL 预训练模型，且速度快 2-500 倍。<br><br>
+    MM4flow 的所有对比对象全是 raw byte 或 PS 输入的 DL 方法。缺少与 RF/XGBoost + handcrafted features 的对比，无法回答"174M 参数的 Transformer 真的比 100 棵决策树更好吗"这个根本性问题。
+  </div>
+
+  <h3>问题 5：多模态融合在某些任务上反而降低性能</h3>
+
+  <pre>
+DataCon2021-p2（隧道加密网站识别）的关键消融数据：
+  BERT-ps  SFT (纯 PS):         Acc = 0.9026, F1 = 0.8999
+  BERT-bytes SFT (纯 Byte):     Acc = 0.0471, F1 = 0.0125  ← 完全无用
+  MM4flow SFT (双模态融合):     Acc = 0.9011, F1 = 0.8976  ← 比纯 PS 还差！
+
+Δ(MM4flow - best unimodal) 按任务：
+  DataCon2020:     +0.0013  (几乎无增益)
+  Browser:         +0.0024  (几乎无增益)
+  DataCon2021-p2:  <strong>-0.0015  (负增益！)</strong>
+  NUDT_Mobile:     +0.0213  (唯一有实质增益的任务，300类)
+  </pre>
+
+  <p>Cross-attention 融合表现出<strong>高度不稳定</strong>——有时微弱帮助，有时中性存在，有时反而伤害。一个好的融合机制应至少在所有任务上持平最优单模态。</p>
+
+  <h3>问题 6：分离预训练导致融合阶段的"三重负担"</h3>
+
+  <div class="findings">
+    微调时第一次引入 cross-attention，模型需要在标注数据上<strong>同时</strong>完成：<br>
+    (1) <strong>对齐 (Alignment)：</strong>让两个从未见过面的表征空间产生可比性<br>
+    (2) <strong>融合 (Fusion)：</strong>学习如何将两个模态的信息有效结合<br>
+    (3) <strong>分类 (Classification)：</strong>用融合后的表征做下游任务<br><br>
+    而标注数据可能每类只有 50-200 个样本。对比 CLIP：4 亿对数据专注做对齐预训练；对比 ViLBERT：在三个语义层级迭代做跨模态交互。MM4flow 把多模态学习中最难的问题全部推迟到标注数据最少的阶段。
+  </div>
+</div>
+
+<!-- ====== 9. 关键争议总结 ====== -->
+<div class="card">
+  <h2>9. 关键争议与开放问题总结</h2>
+
+  <table>
+    <tr><th>维度</th><th>MM4flow 的选择</th><th>潜在的更优方案</th><th>风险</th></tr>
+    <tr>
+      <td><strong>预训练策略</strong></td>
+      <td>Uni-modal 分别预训练</td>
+      <td>Joint pre-training + 梯度调制 (OGM) / MoE</td>
+      <td>⚠️ 中</td>
+    </tr>
+    <tr>
+      <td><strong>Tokenization</strong></td>
+      <td>Byte tokenization (261 tokens)</td>
+      <td>Byte + bigram 混合；或按区域选择策略</td>
+      <td>⚠️ 低-中</td>
+    </tr>
+    <tr>
+      <td><strong>Byte 覆盖</strong></td>
+      <td>256B/方向（前 2-3 包）</td>
+      <td>多段编码 / 逐包编码 / 层次化编码</td>
+      <td style="color:#c0392b;">⚠️ 高</td>
+    </tr>
+    <tr>
+      <td><strong>融合时机</strong></td>
+      <td>仅微调阶段</td>
+      <td>预训练阶段即开始跨模态交互</td>
+      <td style="color:#c0392b;">⚠️ 高</td>
+    </tr>
+    <tr>
+      <td><strong>融合机制</strong></td>
+      <td>Concat-query cross-attention</td>
+      <td>Self-attention / Gated fusion / 多层融合</td>
+      <td>⚠️ 中</td>
+    </tr>
+    <tr>
+      <td><strong>时间信息</strong></td>
+      <td>完全丢弃</td>
+      <td>编码为可选第三模态 + 时间增强</td>
+      <td>⚠️ 中</td>
+    </tr>
+    <tr>
+      <td><strong>评估</strong></td>
+      <td>未含浅层 baseline</td>
+      <td>必须加入 RF/XGBoost 对照</td>
+      <td style="color:#c0392b;">⚠️ 高</td>
+    </tr>
+    <tr>
+      <td><strong>训练充分性</strong></td>
+      <td>77.6TB × 2 epochs</td>
+      <td>减少数据量增加 epochs (如 10TB × 15)</td>
+      <td>⚠️ 中</td>
+    </tr>
+    <tr>
+      <td><strong>部署效率</strong></td>
+      <td>未讨论推理延迟</td>
+      <td>需报告吞吐量（对 100Gbps 链路尤其重要）</td>
+      <td>⚠️ 低</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>总体评价：</strong>MM4flow 是流量预训练领域<strong>工程贡献最大的工作</strong>——77.6TB 真实流量预训练、465M 样本、Zeek 实时采集框架、开源代码——每一个都是实实在在的工程推进。在加密隧道网站识别任务上（DataCon2021-p2），它证明了双模态设计的必要性：当 byte 模态完全失效时，PS 模态独立承载了分类信号（90%+ 准确率 vs 其他方法的 3-6%）。<br><br>
+    但在方法论层面，其多模态设计存在若干可改进之处，其中最核心的三个问题是：<strong>时间覆盖不对称（Byte 仅见前 3 包 vs PS 见全部包）、预训练阶段零跨模态交互（对齐和融合全押注在微调阶段）、以及缺失浅层 baseline 对照</strong>。这些不是方向性错误，而是值得后续工作深入改进的设计选择。
+  </div>
+</div>
+
+<!-- ====== 10. 技术演进定位 ====== -->
+<div class="card">
+  <h2>10. 技术演进定位</h2>
+
+  <div class="flow">
+    <div class="step">PERT (2020)<br>首个预训练流量模型</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">ET-BERT (WWW 2022)<br>MBM+SBP 双任务</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">TrafficFormer<br>(S&P 2025)<br>SODF 五分类+RIFA</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step" style="background:#eaf2f8; border: 2px solid var(--accent);"><strong>MM4flow<br>(CCS 2025)</strong><br>双模态+TB级预训练</div>
+    <div class="arrow">&#8594;</div>
+    <div class="step">Sugar (SIGCOMM 2025)<br>批判反思</div>
+  </div>
+
+  <div class="finding">
+    <strong>MM4flow 在演进路线中的关键位置：</strong>它是第一个将预训练数据规模推进到 TB 级、将模态从单模态扩展到双模态的工作。同时，Sugar 和 SoK (both 2025) 对整条技术路线的批判——per-packet split 数据泄露、frozen encoder 性能不足、缺失浅层 baseline——也是评估 MM4flow 的重要背景。<br><br>
+    MM4flow 值得称道的一点是预训练数据与下游评估数据无重叠（前人工作如 ET-BERT 的预训练数据与下游数据有重合），这在评估公平性上是一个进步。且其 per-packet 到 flow-level 的数据划分方式，部分缓解了 Sugar 指出的 per-packet split 数据泄露问题（但仍建议做 per-flow split + frozen encoder 的对照实验）。
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O-Shap (2025) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#2980b9;">Hierarchical XAI</span>
+  <h1>O-Shap: Owen-based Semantics and Hierarchy-Aware Explanation</h1>
+  <div class="subtitle">将 Owen 值（1977）引入图像可解释性，利用语义分割构建层次化特征归因，实现"先组间、再组内"的结构化解释</div>
+  <div class="meta">
+    <span>📅 2025 年</span>
+    <span>🏷️ 层次可解释性 / Owen 值 / 语义分割</span>
+    <span>📎 与 Shapley 值一脉相承</span>
+  </div>
+</div>
+
+<!-- 一、核心问题 -->
+<div class="card">
+  <h2>一、核心问题：Shapley 值的结构性盲区</h2>
+
+  <h3>1.1 Shapley 值的隐含假设</h3>
+  <p>自 SHAP（Lundberg & Lee, NeurIPS 2017）将 Shapley 值确立为特征归因的"唯一公平解"以来，几乎所有的 SHAP 变体——Kernel SHAP、Deep SHAP、Tree SHAP——都共享一个根本性假设：<strong>所有特征地位平等、相互独立</strong>。在这一假设下，Shapley 值按如下公式计算每个特征 i 的贡献：</p>
+
+  <pre>φᵢ = Σ_{S ⊆ N\{i}}  |S|! (|N|-|S|-1)! / |N|!  ×  [v(S∪{i}) − v(S)]</pre>
+
+  <p>这个公式的核心含义是：<strong>对所有可能的特征排列求边际贡献的期望</strong>。注意，这里 S 是任意特征子集，所有特征可以自由组合——没有任何结构或先验分组约束。</p>
+
+  <h3>1.2 现实中的特征并非"原子化"</h3>
+  <p>然而，现实世界中的特征几乎从不满足这个假设：</p>
+
+  <table>
+    <tr><th>领域</th><th>特征存在天然分组</th><th>举例</th></tr>
+    <tr><td>计算机视觉</td><td>像素 → 语义区域（狗/草地/天空）</td><td>同一语义区域内的像素高度相关</td></tr>
+    <tr><td>网络流量</td><td>TCP 字段 → 端口组 / 标志位组 / 窗口组</td><td>协议层 → 字段组 → 具体字段</td></tr>
+    <tr><td>医疗诊断</td><td>检查指标 → 血液组 / 影像组 / 症状组</td><td>组内指标相关，跨组独立</td></tr>
+    <tr><td>自然语言</td><td>Tokens → 短语 → 从句 → 句子</td><td>树形层次结构</td></tr>
+  </table>
+
+  <div class="finding">
+    <strong>核心矛盾：</strong>Shapley 值将所有特征视为"N 个等价的原子个体"，但真实世界的特征天然具有<strong>层次化分组结构</strong>。当我们将分组特征强行扁平化，不仅损失了结构信息，还可能导致违反直觉的归因结果——例如，高度相关的像素可能被分配截然不同的重要性分数，因为它们被当作独立个体处理。
+  </div>
+</div>
+
+<!-- 二、Owen 值 -->
+<div class="card">
+  <h2>二、Owen 值：层次化 Shapley 的自然延伸</h2>
+
+  <h3>2.1 什么是 Owen 值</h3>
+  <p>Owen 值（Owen, 1977）是 Shapley 值在<strong>带联盟结构（coalition structure）</strong>的合作博弈中的推广。如果 Shapley 值回答的问题是"每个玩家（特征）对总收益的公平分配是多少？"，那么 Owen 值回答的问题是"在玩家已经形成组（联盟）的前提下，组间和组内如何公平分配？"</p>
+
+  <h3>2.2 关键概念：联盟结构（Coalition Structure）</h3>
+  <p>给定 N 个特征的集合 N = {1, 2, ..., n}，一个联盟结构（分区）P = {G₁, G₂, ..., Gₖ} 将特征划分到 k 个互不相交的组中。Owen 值的计算分<strong>两个层次</strong>：</p>
+
+  <div class="flow">
+    <div class="step">第一层：组间排列<br>对 k 个组的全排列求期望</div>
+    <div class="arrow">→</div>
+    <div class="step">第二层：组内排列<br>对组内特征的全排列求期望</div>
+    <div class="arrow">→</div>
+    <div class="step">Owen 值<br>φᵢ = 组贡献 × 组内占比</div>
+  </div>
+
+  <h3>2.3 数学定义</h3>
+  <p>对于特征 i ∈ Gⱼ（第 j 个组），其 Owen 值定义为：</p>
+
+  <pre>
+Owᵢ(v, P) = Σ_{Q ⊆ P\{Gⱼ}}  Σ_{T ⊆ Gⱼ\{i}}
+        |Q|! (k-|Q|-1)! / k!
+      × |T|! (|Gⱼ|-|T|-1)! / |Gⱼ|!
+      × [v(∪_{g∈Q} Gg  ∪  T  ∪  {i}) − v(∪_{g∈Q} Gg  ∪  T)]
+</pre>
+
+  <p>这个公式虽然看起来复杂，但其结构与 Shapley 值完全平行——只是将"一次排列"分解为"外层组排列 × 内层特征排列"。如果每个组只有一个特征（k=n, |Gⱼ|=1），Owen 值退化为标准的 Shapley 值。</p>
+
+  <h3>2.4 Owen vs Shapley：结构化对比</h3>
+  <table>
+    <tr><th>维度</th><th>Shapley (1953)</th><th>Owen (1977)</th></tr>
+    <tr><td>特征结构</td><td>所有特征平等、独立（原子化）</td><td>特征按语义分组，层次化</td></tr>
+    <tr><td>归因过程</td><td>直接计算每个特征的贡献</td><td>先计算组间贡献 → 再计算组内贡献</td></tr>
+    <tr><td>适用场景</td><td>无先验分组知识的扁平特征</td><td>具有天然层次结构的特征</td></tr>
+    <tr><td>效率公理</td><td>∑ φᵢ = v(N) − v(∅)<br>所有特征贡献之和 = 总预测</td><td>T-property: φ(Gⱼ) = ∑_{i∈Gⱼ} φᵢ<br>组的贡献 = 组内成员贡献之和</td></tr>
+    <tr><td>对称性</td><td>等价特征 → 相同贡献</td><td>组内等价特征 → 组内相同贡献</td></tr>
+    <tr><td>计算复杂度</td><td>O(2ⁿ)，需近似（采样）</td><td>更高（双层联盟），需双重要样</td></tr>
+  </table>
+
+  <div class="finding">
+    <strong>T-property（全加性/总贡献性质）：</strong>Owen 值独有的核心公理。它确保了层次化解释的<strong>加性一致性</strong>——分配给一个组的贡献恰好等于该组内所有成员分配到的贡献之和。这一性质使得"组级解释"和"特征级解释"可以无缝衔接、自洽统一。
+  </div>
+</div>
+
+<!-- 三、O-Shap 方法设计 -->
+<div class="card">
+  <h2>三、O-Shap 核心设计：语义感知的层次化解释</h2>
+
+  <h3>3.1 核心创新</h3>
+  <p>O-Shap 的核心创新在于将<strong>语义分割（Semantic Segmentation）</strong>作为"联盟结构"的构造器：</p>
+
+  <div class="flow">
+    <div class="step">输入图像</div>
+    <div class="arrow">→</div>
+    <div class="step">语义分割<br>生成语义区域（联盟）</div>
+    <div class="arrow">→</div>
+    <div class="step">Owen 值<br>组间归因</div>
+    <div class="arrow">→</div>
+    <div class="step">Owen 值<br>组内归因</div>
+    <div class="arrow">→</div>
+    <div class="step">层次化<br>解释输出</div>
+  </div>
+
+  <h3>3.2 方法流程</h3>
+
+  <h4>步骤 1：语义分区（Semantic Partitioning）</h4>
+  <p>使用预训练的语义分割模型（如 DeepLab、SAM）将输入图像分割为语义上有意义的区域。每个区域构成一个"联盟"（coalition）。例如，一张"草地上的狗"图片被分割为：</p>
+  <ul>
+    <li><strong>G₁（狗区域）</strong>：狗身体的像素集合</li>
+    <li><strong>G₂（草地区域）</strong>：草地背景的像素集合</li>
+    <li><strong>G₃（天空区域）</strong>：天空的像素集合</li>
+  </ul>
+
+  <h4>步骤 2：组间 Owen 归因</h4>
+  <p>将每个语义区域视为一个"超级特征"（super-feature），计算区域级别的 Owen 值。这回答了"哪个语义区域对模型预测最重要？"</p>
+
+  <h4>步骤 3：组内 Owen 归因</h4>
+  <p>在每个语义区域内部，将像素视为不可再分的原子特征，计算像素级别的 Owen 值。这回答了"在关键区域内部，哪些像素最具有决定性？"</p>
+
+  <h4>步骤 4：层次化可视化</h4>
+  <p>将两层归因结果合并为统一的层次化解释——既展示区域级的重要性热力图，又展示像素级的精细归因。</p>
+
+  <h3>3.3 为什么语义分区优于任意分组</h3>
+  <p>Owen 值本身不规定如何划分联盟——任何分区都可以。但 O-Shap 选择语义分割的理由非常关键：</p>
+
+  <div class="grid-2">
+    <div class="finding">
+      <strong>解释的可理解性：</strong>人类以语义概念（"狗"、"草地"）理解图像，而非以像素坐标。语义分区使解释与人类认知对齐。
+    </div>
+    <div class="finding">
+      <strong>结构合理性：</strong>同一语义区域内的像素在模型表征空间中高度相关，将它们作为一组既符合数据分布也符合模型内部表示。
+    </div>
+  </div>
+</div>
+
+<!-- 四、具体示例 -->
+<div class="card">
+  <h2>四、具体示例：从 Shapley 到 O-Shap</h2>
+
+  <h3>4.1 案例设定</h3>
+  <p>考虑一张"草地上奔跑的狗"的图像，输入到图像分类模型（如 ResNet 或 ViT），模型预测为"狗"（置信度 0.95）。我们想解释：哪些像素驱动了这个预测？</p>
+
+  <h3>4.2 传统 Shapley 解释的问题</h3>
+  <p>如果对所有像素一视同仁地计算 Shapley 值，会得到一张像素级重要性热力图。问题在于：</p>
+  <ul>
+    <li>狗耳朵上的两个相邻像素可能得到非常不同的 Shapley 值（因为 Shapley 将它们视为独立特征，而实际上它们共同构成"耳朵"这一语义概念）</li>
+    <li>解释结果的碎片化：热力图上的高亮区域可能是碎片状的，缺乏语义级别的聚合</li>
+    <li>无法回答"整个狗区域"贡献了多少——只能回答"每个像素"的贡献，需要额外聚合</li>
+  </ul>
+
+  <h3>4.3 O-Shap 的层次化解释结果</h3>
+
+  <div class="example-box">
+    <strong>完整案例：狗在草地上</strong>
+
+    <pre>
+【第一层：语义区域级归因】（组间 Owen 值）
+┌──────────────────┬─────────────┬──────────────────────┐
+│ 语义区域          │ Owen 贡献    │ 解读                  │
+├──────────────────┼─────────────┼──────────────────────┤
+│ G₁: 狗区域        │    70%      │ 对预测贡献最大         │
+│ G₂: 草地区域      │    20%      │ 提供上下文支持         │
+│ G₃: 天空区域      │    10%      │ 几乎不相关             │
+└──────────────────┴─────────────┴──────────────────────┘
+
+【第二层：狗区域内部像素级归因】（组内 Owen 值）
+┌──────────────────┬─────────────┬──────────────────────┐
+│ 子区域            │ 组内贡献占比 │ 解读                  │
+├──────────────────┼─────────────┼──────────────────────┤
+│ 眼睛像素          │    30%      │ 狗区域中最关键特征     │
+│ 耳朵像素          │    25%      │ 形状特征重要           │
+│ 鼻子像素          │    25%      │ 纹理特征关键           │
+│ 身体/毛发像素     │    20%      │ 填充剩余辨识信息       │
+└──────────────────┴─────────────┴──────────────────────┘
+
+T-property 验证：70% = 70% × (30%+25%+25%+20%) ✓
+组贡献Σ = 组内成员贡献Σ ✓
+    </pre>
+  </div>
+
+  <p>这种层次化解释比传统 Shapley 的扁平热力图提供了<strong>结构化认知</strong>：不仅知道"狗区域最重要"，还知道"眼睛像素是狗区域中最关键的子成分"。这是人类推理的自然层次——先定位"什么对象"，再分析"对象的哪部分"。</p>
+</div>
+
+<!-- 五、T-property -->
+<div class="card">
+  <h2>五、T-property：层次化解释的数学基石</h2>
+
+  <h3>5.1 T-property 的定义</h3>
+  <p>T-property（Total Contribution Property）是 Owen 值独有的公理，也是它与 Shapley 值的关键区别：</p>
+
+  <div class="highlight-box">
+    <strong>T-property：</strong>对于任意联盟结构 P 和任意组 Gⱼ ∈ P，组 Gⱼ 本身的 Owen 值（将整组作为一个玩家参与组间博弈）等于该组所有成员的个体 Owen 值之和。
+    <br><br>
+    数学表达：φ(Gⱼ) = Σ_{i∈Gⱼ} φᵢ
+  </div>
+
+  <h3>5.2 为什么 T-property 至关重要</h3>
+  <p>如果没有 T-property，"层次化解释"就是虚假的——你无法同时声称"狗区域贡献了 70%"和"狗区域的像素贡献之和为 70%"。T-property 保证了这两个陈述的一致性。</p>
+
+  <p>对比：如果对 Shapley 值结果进行事后分组求和：</p>
+  <ul>
+    <li><strong>Shapley + 事后聚合</strong>：先计算所有像素的独立 Shapley 值，再按语义区域求和。这≠ Owen 值，因为 Shapley 值在计算时未考虑组结构，组间交叉项未被正确处理。</li>
+    <li><strong>Owen 值</strong>：在计算过程中就嵌入了组结构，组间博弈和组内博弈被显式建模，T-property 自然成立。</li>
+  </ul>
+
+  <h3>5.3 效率公理的层次化推广</h3>
+  <p>Shapley 值的效率公理（Efficiency）要求所有特征贡献之和等于总预测值。Owen 值继承并推广了这一公理：</p>
+  <ul>
+    <li><strong>全局效率：</strong>Σ_{所有组} φ(Gⱼ) = v(N) − v(∅)（组级效率）</li>
+    <li><strong>组内效率：</strong>Σ_{i∈Gⱼ} φᵢ = φ(Gⱼ)（T-property，组内效率）</li>
+    <li><strong>组合：</strong>Σ_{所有特征} φᵢ = v(N) − v(∅)（特征级效率，自动满足）</li>
+  </ul>
+</div>
+
+<!-- 六、与网络流量可解释性的关联 -->
+<div class="card">
+  <h2>六、网络流量可解释性的 Owen 视角</h2>
+
+  <h3>6.1 网络流量特征的天然层次结构</h3>
+  <p>网络流量数据的特征具有极其自然的层次化分组结构，这使得 Owen 值（而非扁平 Shapley）更适合：</p>
+
+  <pre>
+第一层：协议层
+├── TCP 流量组
+│   ├── 端口子组：源端口、目标端口
+│   ├── 标志位子组：SYN、ACK、FIN、RST、PSH
+│   ├── 窗口子组：窗口大小、窗口缩放因子
+│   └── 选项子组：时间戳、MSS、SACK
+│
+├── UDP 流量组
+│   ├── 端口子组：源端口、目标端口
+│   └── 长度子组：UDP 长度、校验和
+│
+└── 统计特征组
+    ├── 时序子组：包间隔、流持续时间
+    ├── 载荷子组：载荷熵、字节分布
+    └── 计数子组：包数、字节数
+  </pre>
+
+  <h3>6.2 层次化解释的实践价值</h3>
+  <p>在网络安全场景中，层次化解释提供了更具操作性的分析能力：</p>
+
+  <table>
+    <tr><th>场景</th><th>Shapley 能回答的问题</th><th>Owen 能额外回答的问题</th></tr>
+    <tr><td>恶意流量检测</td><td>"哪些特征字段最重要？"</td><td>"是协议头特征组驱动，还是统计特征组驱动？→ 在协议头组内，标志位还是端口号更关键？"</td></tr>
+    <tr><td>加密流量分类</td><td>"哪个特征贡献最大？"</td><td>"载荷统计特征组和时序特征组各自的贡献占比是多少？→ 时序组内，包间隔还是流持续时间更关键？"</td></tr>
+    <tr><td>模型调试</td><td>"模型在关注什么特征？"</td><td>"模型是在做合理的层次化推理，还是仅依赖某个单一组内的少量特征？"</td></tr>
+  </table>
+
+  <div class="finding">
+    <strong>关键洞察：</strong>在流量预训练模型（如 ET-BERT、MM4flow）中，虽然特征被 token 化并输入 Transformer，但 token 对应的原始流量字段仍保留着天然的层次关系。将 O-Shap 的层次化归因思想引入流量模型解释，可以在 Transformer 的"黑盒"输出和原始流量结构之间建立桥梁。
+  </div>
+</div>
+
+<!-- 七、计算与局限性 -->
+<div class="card">
+  <h2>七、计算方案与局限性</h2>
+
+  <h3>7.1 计算挑战</h3>
+  <p>Owen 值的精确计算需要对两层排列（组间排列和组内排列）求期望，其复杂度远高于单层 Shapley。O-Shap 需要同时处理：</p>
+  <ul>
+    <li><strong>外层采样：</strong>k 个语义区域的排列空间（k! 种可能）</li>
+    <li><strong>内层采样：</strong>每个区域内 |Gⱼ| 个像素的排列空间（|Gⱼ|! 种可能）</li>
+    <li><strong>双重组合爆炸：</strong>实际计算中需要对两层同时采样</li>
+  </ul>
+  <p>O-Shap 采用蒙特卡洛采样策略来近似 Owen 值，这与 Owen MC Approximation（2023）文中的理论框架相辅相成：后者提供了严格的误差界保证，前者将其应用于语义感知的图像解释场景。</p>
+
+  <h3>7.2 语义分割质量依赖</h3>
+  <p>O-Shap 的联盟结构完全由语义分割模型提供。这意味着：</p>
+
+  <div class="critique-box">
+    <strong>关键限制：</strong>
+    <ul>
+      <li>如果语义分割出错（例如将狗的一部分错误分割为"草地"），O-Shap 的归因也会继承这个错误</li>
+      <li>语义分割的粒度直接影响解释的粒度——过粗的分割丢失细节，过细的分割消解了层次化的优势</li>
+      <li>对于语义分割模型本身无法定义的场景（如无明确对象的抽象纹理），O-Shap 的优势受限</li>
+      <li>语义分割质量与下游任务的相关性：语义分割的"正确"划分未必是模型推理的"最优"划分</li>
+    </ul>
+  </div>
+
+  <h3>7.3 与相关方法的关系</h3>
+  <table>
+    <tr><th>方法</th><th>Owen 值计算方式</th><th>适用模型</th><th>与 O-Shap 的关系</th></tr>
+    <tr><td>Owen MC Approximation (2023)</td><td>MC 采样 + 误差界</td><td>任意黑盒（含神经网络）</td><td>提供采样算法理论基础</td></tr>
+    <tr><td>Owen Tree Models (2024)</td><td>闭式解（CatBoost）</td><td>树模型</td><td>不同模型类型下的互补方法</td></tr>
+    <tr><td>O-Shap (2025)</td><td>语义分割 + MC 采样</td><td>图像模型（CNN/ViT）</td><td>将 Owen 值应用于图像语义层次</td></tr>
+    <tr><td>SHAP PartitionExplainer</td><td>基于特征聚类的 Owen</td><td>任意模型</td><td>O-Shap 的广义前身（无语义感知）</td></tr>
+  </table>
+
+  <h3>7.4 适用性与边界</h3>
+  <ul>
+    <li><strong>最适用的场景：</strong>特征具有清晰的语义分组结构，且分组与模型推理逻辑对齐（如图像的语义分割）</li>
+    <li><strong>较适用的场景：</strong>领域知识可提供合理的分组先验（如网络流量的协议层次）</li>
+    <li><strong>有限的场景：</strong>特征无天然分组，或分组与模型推理逻辑无关联（如纯统计特征的随机分组）</li>
+  </ul>
+</div>
+
+<!-- 八、关键贡献与总结 -->
+<div class="card">
+  <h2>八、关键贡献与总结</h2>
+
+  <h3>8.1 O-Shap 的三重贡献</h3>
+  <div class="grid-2">
+    <div class="finding">
+      <strong>1. 语义感知的层次化解释：</strong>首次将语义分割引入 Owen 值框架，使联盟结构具有人类可理解的语义含义，而非任意聚类。
+    </div>
+    <div class="finding">
+      <strong>2. 两层归因统一框架：</strong>同时提供组级和特征级解释，通过 T-property 保证两层的一致性，实现了"先宏观、后微观"的层次化推理。
+    </div>
+    <div class="finding">
+      <strong>3. 跨域推广潜力：</strong>虽然 O-Shap 聚焦图像，但其方法论——"领域先验定义联盟 + Owen 值层次归因"——可直接推广到任何具有自然分组结构的领域（网络流量、医疗、NLP 等）。
+    </div>
+  </div>
+
+  <h3>8.2 从 Shapley 到 Owen 的方法论演进</h3>
+  <div class="flow">
+    <div class="step">Shapley (1953)<br>原子化公平分配</div>
+    <div class="arrow">→</div>
+    <div class="step">SHAP (2017)<br>统一归因框架</div>
+    <div class="arrow">→</div>
+    <div class="step">Owen (1977)<br>联盟结构博弈</div>
+    <div class="arrow">→</div>
+    <div class="step">Partition SHAP<br>特征聚类归因</div>
+    <div class="arrow">→</div>
+    <div class="step">O-Shap (2025)<br>语义层次归因</div>
+  </div>
+  <p>这条演进路线清晰地展示了一条从"平坦、独立、原子化"到"层次化、结构化、语义化"的可解释性发展轨迹。</p>
+
+  <h3>8.3 本仓库中的定位</h3>
+  <p>O-Shap 在仓库的知识体系中处于<strong>Owen 值应用层</strong>，与另外两篇 Owen 论文形成三角互补：</p>
+  <ul>
+    <li><strong>Owen MC Approximation (2023)</strong> → 提供近似计算的理论保障（怎么算得准）</li>
+    <li><strong>Owen Tree Models (2024)</strong> → 提供精确计算的闭式解（在特定模型上怎么算得精确）</li>
+    <li><strong>O-Shap (2025)</strong> → 提供语义感知的应用框架（怎么用得有意义）</li>
+  </ul>
+  <p>三者共同构成 Owen 值从理论到实践的完整技术栈。</p>
+</div>
+
+</div>
+</body>
+</html>

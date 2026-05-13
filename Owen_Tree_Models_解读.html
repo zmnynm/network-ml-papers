@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owen Tree Models (2024) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#c0392b;">Critical Finding</span>
+  <h1>On Marginal Feature Attributions of Tree-Based Models: Owen, Banzhaf, Shapley</h1>
+  <div class="subtitle">为 CatBoost 推导 Owen 值闭式解，并证明 path-dependent TreeSHAP 缺乏实现不变性——两个功能等价的树可以产生不同的特征归因</div>
+  <div class="meta">
+    <span>📅 2024 年</span>
+    <span>🏷️ Owen 值 / TreeSHAP / CatBoost / 实现不变性</span>
+    <span>⚠️ 对 TreeSHAP 的可信度提出重大质疑</span>
+  </div>
+</div>
+
+<!-- 一、论文定位 -->
+<div class="card">
+  <h2>一、双重贡献：一座大厦，一把锤子</h2>
+
+  <p>本文在树模型特征归因领域做出了两个方向截然不同但同等重要的贡献：</p>
+
+  <div class="grid-2">
+    <div class="finding">
+      <strong>贡献 1（建设性）——闭式解：</strong>
+      为 CatBoost 树模型推导出 Owen 值的<strong>闭式（解析）解</strong>，使层次化特征归因在树模型上可以<strong>精确计算</strong>而无需蒙特卡洛采样。
+    </div>
+    <div class="critique-box">
+      <strong>贡献 2（批判性）——实现不变性失败：</strong>
+      严格证明 path-dependent TreeSHAP 不满足<strong>实现不变性</strong>（Implementation Invariance）——两个功能完全等价（输入输出映射相同）但内部结构不同的树，可能产生不同的特征归因。
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>论文标题的深意：</strong>"On Marginal Feature Attributions"中的 "marginal" 一词有双重含义——既指博弈论中的"边际贡献"（marginal contribution），也暗示本文的分析处于树模型可解释性的"前沿边界"（on the margins of current understanding）。将 Owen、Banzhaf、Shapley 三者并列，明示本文的分析框架覆盖三种主要的博弈论解概念。
+  </div>
+</div>
+
+<!-- 二、闭式解 -->
+<div class="card">
+  <h2>二、贡献一：CatBoost 的 Owen 值闭式解</h2>
+
+  <h3>2.1 为什么是 CatBoost</h3>
+  <p>CatBoost（Categorical Boosting，由 Yandex 开发）与 XGBoost 和 LightGBM 并列为三大主流梯度提升树框架。CatBoost 的树结构具有特殊的数学性质——其对称树（oblivious trees）在每一层对所有特征使用相同的分裂条件——这一结构性约束恰恰使 Owen 值的解析计算成为可能。</p>
+
+  <table>
+    <tr><th>树模型框架</th><th>树结构</th><th>Owen 值闭式解</th></tr>
+    <tr><td>CatBoost</td><td>对称树（oblivious tree）：每层统一分裂条件</td><td>✅ 有闭式解（本文贡献）</td></tr>
+    <tr><td>XGBoost</td><td>非对称树：每节点独立分裂条件</td><td>⚠️ 需近似或部分解析</td></tr>
+    <tr><td>LightGBM</td><td>叶向树（leaf-wise）：按叶增益分裂</td><td>⚠️ 需近似或部分解析</td></tr>
+  </table>
+
+  <h3>2.2 闭式解的核心思路</h3>
+  <p>在树模型中，一个样本从根节点到叶节点的路径是唯一确定的。给定联盟结构 P = {G₁, G₂, ..., Gₖ}，Owen 值的计算只需要沿着这条路径进行解析推导，无需枚举所有特征排列：</p>
+
+  <div class="flow">
+    <div class="step">样本落入的<br>叶节点路径</div>
+    <div class="arrow">→</div>
+    <div class="step">路径上的<br>分裂条件分析</div>
+    <div class="arrow">→</div>
+    <div class="step">按联盟结构<br>重组分组覆盖</div>
+    <div class="arrow">→</div>
+    <div class="step">解析计算<br>组间+组内 Owen 值</div>
+  </div>
+
+  <p>关键数学直觉：树的分裂条件天然定义了一个特征空间的划分。Owen 值的计算等价于在所有可能的"特征掩码"（哪些组被纳入、组内哪些特征被纳入）下计算预测值的期望变化。对于树的离散结构，这些期望可以<strong>从叶节点的权重和覆盖率中解析地求出</strong>。</p>
+
+  <h3>2.3 闭式解的优势</h3>
+  <table>
+    <tr><th>对比维度</th><th>MC Owen 采样</th><th>闭式解（本文）</th></tr>
+    <tr><td>精确性</td><td>近似（有统计误差）</td><td>精确（无误差）</td></tr>
+    <tr><td>计算时间</td><td>O(M × 树遍历)，M 为采样次数</td><td>O(树深度 × 组数)，通常极快</td></tr>
+    <tr><td>可重复性</td><td>非确定性（随机采样）</td><td>确定性（解析计算）</td></tr>
+    <tr><td>模型类型限制</td><td>任意黑盒</td><td>仅 CatBoost 树模型</td></tr>
+    <tr><td>特征分组支持</td><td>任意预定义分组</td><td>任意预定义分组</td></tr>
+  </table>
+
+  <div class="finding">
+    <strong>实践意义：</strong>在网络流量分类的浅层 baseline 中（如 Sweet Danger of Sugar 论文推荐的 LightGBM/XGBoost），CatBoost 常作为对比模型。如果使用 CatBoost，可以通过本文的闭式解<strong>零额外成本</strong>获得精确的层次化 Owen 值归因——先归因到"协议头组"vs"统计特征组"，再归因到组内的具体字段。
+  </div>
+</div>
+
+<!-- 三、实现不变性 -->
+<div class="card">
+  <h2>三、贡献二：Path-dependent TreeSHAP 的实现不变性失败</h2>
+
+  <h3>3.1 什么是实现不变性</h3>
+  <p>实现不变性（Implementation Invariance）是可解释性方法的一个基本公理要求：</p>
+
+  <div class="highlight-box">
+    <strong>实现不变性定义：</strong>如果两个模型 f₁ 和 f₂ 在<strong>所有可能的输入</strong>上产生完全相同的预测结果（即 f₁(x) = f₂(x) ∀x），那么任何有效的特征归因方法应该为 f₁ 和 f₂ 分配<strong>完全相同的特征重要性</strong>。
+    <br><br>
+    直觉：解释的是模型的<strong>函数行为</strong>（输入到输出的映射），而非模型的<strong>内部实现细节</strong>。如果两个模型做的一模一样，那它们的解释也应该一模一样。
+  </div>
+
+  <h3>3.2 反例构造：两棵等价树，不同的归因</h3>
+
+  <p>考虑一个简单的二分类问题，有两个特征 f₁ 和 f₂。以下两棵树在所有输入上产生完全相同的预测：</p>
+
+  <div class="example-box">
+    <strong>树 A：先分裂 f₁，再分裂 f₂</strong>
+    <pre>
+         [根节点]
+        f₁ ≤ 0.5 ?
+       /          \
+     是            否
+     /              \
+  [节点1]        [节点4]
+  f₂ ≤ 0.3 ?     f₂ ≤ 0.7 ?
+  /      \       /       \
+ 叶A    叶B     叶C      叶D
+(0.1)  (0.3)   (0.7)   (0.9)
+    </pre>
+  </div>
+
+  <div class="example-box">
+    <strong>树 B：先分裂 f₂，再分裂 f₁（结构不同，但预测完全相同）</strong>
+    <pre>
+         [根节点]
+        f₂ ≤ 0.3 ?
+       /          \
+     是            否
+     /              \
+  [节点1]        [节点4]
+  f₂ ≤ 0.7 ?     f₁ ≤ 0.5 ?
+  /      \       /       \
+ 叶A'   叶B'    叶C'     叶D'
+(0.1)  (0.7)   (0.3)   (0.9)
+    </pre>
+    <p>注意：两棵树的叶节点权重被精心设置，使得对所有 (f₁, f₂) 输入组合，Tree A 和 Tree B 输出完全相同的预测值。</p>
+  </div>
+
+  <h3>3.3 Path-dependent TreeSHAP 为何得出不同归因</h3>
+  <p>Path-dependent TreeSHAP 的计算依赖于树结构的<strong>路径覆盖模式</strong>：</p>
+  <ul>
+    <li><strong>Tree A：</strong>f₁ 首先分裂 → f₁ 出现在每条路径的根节点 → f₁ 的"覆盖比例"（在路径决策中的结构性权重）较高 → f₁ 获得更高的归因</li>
+    <li><strong>Tree B：</strong>f₂ 首先分裂 → f₂ 的覆盖比例较高 → f₂ 获得更高的归因</li>
+  </ul>
+  <p>即使两棵树的功能完全相同，path-dependent TreeSHAP 给出的 f₁ 和 f₂ 的归因分数却不同。这违反了实现不变性。</p>
+
+  <div class="critique-box">
+    <strong>严重性评估：</strong>这不仅是一个理论瑕疵，更是一个实践中的<strong>安全风险</strong>——
+    <ul>
+      <li>恶意开发者可以通过<strong>重构树的结构</strong>（不改变预测行为）来<strong>操纵</strong>解释结果</li>
+      <li>安全审计人员无法分辨：一个"看起来合理"的 TreeSHAP 解释，可能只是因为树结构被精心设计以产生该解释</li>
+      <li>在受监管场景中（如 GDPR"解释权"），模型提供方可通过树结构工程来<strong>制造符合监管预期的解释</strong>，同时保持预测不变</li>
+    </ul>
+  </div>
+
+  <h3>3.4 Interventional TreeSHAP 避免此问题</h3>
+  <p>与 path-dependent 变体不同，<strong>interventional TreeSHAP</strong>（基于背景数据集的特征干预）满足实现不变性，因为它不是追踪树的路径结构，而是通过实际的特征掩码和背景数据来计算边际贡献。本文的分析揭示了这两种 TreeSHAP 变体之间的根本区别：</p>
+  <table>
+    <tr><th>TreeSHAP 变体</th><th>计算方式</th><th>实现不变性</th><th>问题</th></tr>
+    <tr><td>Path-dependent</td><td>沿树的决策路径追踪覆盖率</td><td>❌ 不满足</td><td>树结构可被操纵以产生任意解释</td></tr>
+    <tr><td>Interventional</td><td>基于背景数据集的真实特征干预</td><td>✅ 满足</td><td>需要背景数据集，计算量更大</td></tr>
+  </table>
+</div>
+
+<!-- 四、扩展到Banzhaf -->
+<div class="card">
+  <h2>四、超越 Shapley/Owen：Banzhaf 值的闭式解</h2>
+
+  <h3>4.1 Banzhaf 值简介</h3>
+  <p>Banzhaf 值（Banzhaf, 1965）是合作博弈中的另一个经典解概念。与 Shapley 值不同，Banzhaf 值不使用排列加权，而是直接计算每个特征在所有可能联盟中的<strong>平均边际贡献</strong>（不按联盟大小加权）：</p>
+  <pre>
+Banzhafᵢ = (1 / 2ⁿ⁻¹) × Σ_{S ⊆ N\{i}} [v(S ∪ {i}) − v(S)]
+
+vs
+
+Shapleyᵢ = Σ_{S ⊆ N\{i}} (|S|!(n−|S|−1)! / n!) × [v(S ∪ {i}) − v(S)]
+  </pre>
+
+  <h3>4.2 Banzhaf-Owen 值的闭式解</h3>
+  <p>类似于 Owen 值是 Shapley 值在带联盟结构博弈中的推广，本文也推导了 <strong>Banzhaf-Owen 值</strong>（Owen, 1982，将 Banzhaf 值推广到联盟结构）在 CatBoost 树模型上的闭式解。</p>
+
+  <table>
+    <tr><th>解概念</th><th>无组结构</th><th>带联盟结构（Owen 推广）</th></tr>
+    <tr><td>基于排列加权</td><td>Shapley 值 (1953)</td><td>Owen 值 (1977)</td></tr>
+    <tr><td>基于简单平均</td><td>Banzhaf 值 (1965)</td><td>Banzhaf-Owen 值 (1982)</td></tr>
+  </table>
+
+  <p>Banzhaf 值在某些场景下可能更优（例如当联盟大小的先验分布未知时），本文为实践者提供了另一种选择。</p>
+</div>
+
+<!-- 五、具体示例 -->
+<div class="card">
+  <h2>五、完整示例：Owen 值在流量分类中的应用</h2>
+
+  <h3>5.1 场景设定</h3>
+  <p>使用 CatBoost 模型进行加密流量分类（如 Sweet Danger of Sugar 中推荐的浅层 baseline）。特征按协议层次分组：</p>
+  <pre>
+联盟结构 P = {
+  G₁: 传输层协议特征组（协议类型、端口号、标志位）,
+  G₂: 统计特征组（包长度均值/方差/熵、包间隔均值/方差）,
+  G₃: 载荷字节特征组（前 N 字节的分布统计）
+}
+  </pre>
+
+  <h3>5.2 闭式 Owen 值归因结果</h3>
+  <p>对于被分类为"视频流"的某条加密流量：</p>
+
+  <div class="example-box">
+    <strong>层次化归因（闭式解，精确值）</strong>
+    <pre>
+组间 Owen 值（一级归因）：
+  G₁ 传输层协议组：   18.3%
+  G₂ 统计特征组：     55.7%  ← 主导贡献
+  G₃ 载荷字节组：     26.0%
+
+G₂ 统计特征组内 Owen 值（二级归因）：
+  包长度方差：   32.1%  ← 最关键单特征
+  包间隔方差：   27.4%
+  字节熵：       21.8%
+  包长度均值：    12.5%
+  包间隔均值：     6.2%
+
+T-property 验证：
+  G₂ 组贡献 55.7% = 55.7% × (32.1+27.4+21.8+12.5+6.2)% ✓
+    </pre>
+  </div>
+
+  <h3>5.3 与 flat Shapley 的对比</h3>
+  <table>
+    <tr><th>方法</th><th>能告诉我们的信息</th></tr>
+    <tr><td>Flat Shapley</td><td>"包长度方差最重要，贡献 17.8%；包间隔方差次之，贡献 15.3%；..."<br>→ 只给了特征排名，缺少结构性信息</td></tr>
+    <tr><td>Owen 闭式解</td><td>"统计特征组整体贡献 55.7%，其中包长度方差是组内主力（占组内 32.1%）"<br>→ 先定位关键特征组，再定位组内关键特征，层次清晰</td></tr>
+  </table>
+
+  <p>这种层次化解释在安全运维中更有操作价值：如果统计特征组主导了分类决策，分析人员知道关注点应在统计特征的采集和处理上；如果载荷字节组主导，则需要检查字节特征的提取方法。</p>
+</div>
+
+<!-- 六、与仓库的关联 -->
+<div class="card">
+  <h2>六、与本仓库研究主题的关联</h2>
+
+  <h3>6.1 对"Sweet Danger of Sugar"路线的加强</h3>
+  <p>Sweet Danger of Sugar (2025) 批判了表示学习方法在加密流量分类中的有效性，并推荐使用浅层树模型（LightGBM/XGBoost）作为 strong baseline。本文提供了对这些浅层 baseline 进行层次化解释的工具：</p>
+  <div class="flow">
+    <div class="step">Sugar 推荐<br>浅层树模型<br>(LightGBM/XGBoost/CatBoost)</div>
+    <div class="arrow">→</div>
+    <div class="step">本文提供<br>Owen 闭式解<br>(CatBoost 精准层次归因)</div>
+    <div class="arrow">→</div>
+    <div class="step">可受审计的<br>解释性浅层基线<br>（非黑盒）</div>
+  </div>
+
+  <h3>6.2 对"黑盒 Transformer"路线的反思</h3>
+  <p>ET-BERT、MM4flow 等流量预训练模型是 Transformer（神经网络），Owen 闭式解不适用。但本文的一个隐含信息值得关注：</p>
+  <div class="finding">
+    <strong>如果连 TreeSHAP（在结构完全可控的树上）的解释可信度都存在根本性问题，那对于神经网络（结构复杂成千上万倍）上的 SHAP/SHAP 变体，我们凭什么相信它们的解释？</strong>
+    <br><br>
+    这不是说神经网络可解释性无用——而是提醒我们：<strong>在解释方法本身的可信度被严格验证之前，基于解释结果做出的安全决策需要保持适当的怀疑态度</strong>。
+  </div>
+
+  <h3>6.3 方法选择决策树</h3>
+  <pre>
+                    使用什么模型？
+                    /            \
+            树模型              神经网络/Transformer
+           /                          \
+     哪个框架？                    使用 MC Owen 采样
+     /    |    \                  (Owen MC 2023)
+  CatBoost XGBoost LightGBM        + 误差界评估
+     |       |        |
+  闭式Owen  Interventional   Interventional
+  (本文)   TreeSHAP        TreeSHAP
+  </pre>
+</div>
+
+<!-- 七、局限性 -->
+<div class="card">
+  <h2>七、局限性与开放问题</h2>
+
+  <h3>7.1 本文的局限性</h3>
+
+  <div class="critique-box">
+    <strong>局限 1 — 模型类型受限：</strong>闭式解仅适用于 CatBoost（及其对称树结构变体）。对于 XGBoost（非对称树）和 LightGBM（叶向树），Owen 值的闭式解尚未推导。对于神经网络，闭式解根本不可能。
+  </div>
+
+  <div class="critique-box">
+    <strong>局限 2 — 单树/单模型的归因：</strong>梯度提升模型（如 CatBoost）通常包含数百棵树。每棵树的 Owen 值可以分别计算，但如何将多棵树的归因"公平地"聚合为一个全局 Owen 值？简单求和是否保留了 T-property？这些问题的分析尚不充分。
+  </div>
+
+  <div class="critique-box">
+    <strong>局限 3 — 联盟结构的定义：</strong>Owen 闭式解需要一个预定义的联盟结构 P。本文不讨论如何从数据中自动学习最优的 P——这是一个开放问题。对于网络流量，目前只能依赖领域知识手工定义组结构（如协议层次）。
+  </div>
+
+  <div class="critique-box">
+    <strong>局限 4 — 实现不变性的修复范围：</strong>本文证明了 path-dependent TreeSHAP 的问题，并指出了 interventional TreeSHAP 是其修复。但 interventional TreeSHAP 依赖于背景数据集的选择——不同的背景数据集会给出不同的归因。这引入了新的自由度，但"正确的"背景数据集选择不是一个已解决的问题。
+  </div>
+
+  <h3>7.2 开放研究问题</h3>
+  <ol>
+    <li><strong>XGBoost/LightGBM 的 Owen 闭式解：</strong>能否为非对称树结构推导类似的解析公式？</li>
+    <li><strong>最优联盟结构学习：</strong>能否从数据和模型中自动发现最有意义的特征分组结构？</li>
+    <li><strong>集成树的归因聚合：</strong>多棵树的归因如何公平、一致地融合？</li>
+    <li><strong>从树到网络的桥接：</strong>能否利用树的闭式解为神经网络中的 Owen 值采样提供更紧的方差界？</li>
+  </ol>
+</div>
+
+<!-- 八、总结 -->
+<div class="card">
+  <h2>八、总结</h2>
+
+  <h3>8.1 关键发现速查</h3>
+  <table>
+    <tr><th>发现</th><th>含义</th><th>影响</th></tr>
+    <tr><td>CatBoost 的 Owen 闭式解</td><td>树模型上可精确计算层次化特征归因</td><td>为浅层 baseline 提供可审计的解释能力</td></tr>
+    <tr><td>Path-dependent TreeSHAP 缺乏实现不变性</td><td>等价树可产生不同归因，解释可被操纵</td><td>使用 TreeSHAP 时应优先选择 interventional 变体</td></tr>
+    <tr><td>Banzhaf 值也有闭式解</td><td>除了 Shapley/Owen，还有替代归因选择</td><td>丰富了树模型可解释性工具箱</td></tr>
+    <tr><td>实现不变性是根本要求</td><td>任何不满足此性质的归因方法不可信赖</td><td>为可解释性方法设计设立了最低门槛</td></tr>
+  </table>
+
+  <h3>8.2 对实践者的核心建议</h3>
+  <ol>
+    <li><strong>使用 CatBoost 时：</strong>优先使用本文的 Owen 闭式解，获得精确的层次化归因</li>
+    <li><strong>使用 TreeSHAP 时：</strong>避免 path-dependent 变体，始终使用 interventional 变体</li>
+    <li><strong>评估解释可信度时：</strong>将"实现不变性"作为检查清单的第一项</li>
+    <li><strong>在安全关键应用中：</strong>树模型的精确 Owen 值比神经网络的近似 SHAP 值更可审计</li>
+  </ol>
+</div>
+
+</div>
+</body>
+</html>

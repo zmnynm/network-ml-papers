@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xNIDS — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- ====== Hero ====== -->
+<div class="hero">
+  <span class="tag" style="background:#c0392b;">USENIX Security 2023</span>
+  <h1>xNIDS: Explaining Deep Learning-based Network Intrusion Detection Systems for Active Intrusion Responses</h1>
+  <div class="subtitle">从黑盒检测到可执行的防御规则 — 首个人机闭环 NIDS 解释与防御框架</div>
+  <div class="meta">
+    <span>作者: Feng Wei (University at Buffalo), Hongda Li (Palo Alto Networks), Ziming Zhao, Hongxin Hu (University at Buffalo)</span>
+    <span>收录: USENIX Security 2023</span>
+    <span>代码: github.com/akafengfeng/code-xNIDS</span>
+  </div>
+</div>
+
+<!-- ====== 0. Overview ====== -->
+<div class="card">
+  <h2>0. 论文总览</h2>
+  <p>xNIDS 是<strong>首个将深度学习 NIDS 的局部解释与主动防御规则生成统一起来的端到端框架</strong>。它填补了 DL-NIDS 领域的一个关键空白：现有 DL-NIDS 可以高精度检测攻击，但输出的是黑盒的异常分数或二值标签——SOC 分析师无法理解"为什么这个流量被标记为攻击"，更无法将检测结果转化为防火墙规则、流量阻断等可执行的防御措施。</p>
+
+  <p>xNIDS 的核心贡献是一个<strong>双阶段架构</strong>：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>阶段一 (解释):</strong> 解决 DL-NIDS 场景下的两大特殊挑战——(1) RNN/LSTM 依赖历史输入 (Historical Inputs)，现有方法仅采样当前输入；(2) 网络特征存在结构化依赖 (Structured Feature Dependencies)，现有方法假设特征独立。</li>
+    <li><strong>阶段二 (防御):</strong> 将解释结果自动编译为可执行的防御规则，兼容 iptables、OpenFlow、Pfsense、Squid 等主流网络防御基础设施。</li>
+  </ul>
+
+  <div class="flow">
+    <div class="step">DL-NIDS<br><small>异常检测</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Historical Input Processing<br><small>动态窗口 + WRS</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Sparse Group Lasso<br><small>特征分组 + 稀疏归因</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Explanation<br><small>Top-K 特征贡献</small></div>
+    <div class="arrow">→</div>
+    <div class="step">Defense Rule Gen<br><small>iptables / OpenFlow / ...</small></div>
+  </div>
+  <p style="text-align:center; font-size:13px; color:#888; margin-top:6px;">图: xNIDS 总体架构 — 从 DL 检测到可执行防御规则的完整链路</p>
+</div>
+
+<!-- ====== 1. Motivation ====== -->
+<div class="card">
+  <h2>1. 研究动机 — DL-NIDS 的"语义鸿沟"</h2>
+
+  <h3>1.1 问题的本质: 检测 ≠ 理解 ≠ 行动</h3>
+  <p>现代 DL-NIDS (如 Kitsune, RNN-IDS, DeepLog) 的输出形式通常是：</p>
+  <pre><code>Alert: anomaly_score = 0.92, src_ip = 192.168.1.105, dst_ip = 10.0.0.3, timestamp = 23:45:12</code></pre>
+  <p>SOC 分析师收到这条告警后的第一个念头就是：<strong>"这个分数是什么意思？为什么是 0.92？哪些特征导致了这个分数？我现在应该阻断这个 IP 还是放行？"</strong>现有的 DL-NIDS 对这些问题统统没有答案。这就是所谓的<strong>语义鸿沟 (Semantic Gap)</strong>——高精度检测结果与实际安全运维操作之间缺乏可理解的桥梁。</p>
+
+  <h3>1.2 SOC 分析师的真实困境</h3>
+  <p>传统的基于签名的 IDS (如 Snort, Suricata) 虽然检测能力有限，但有一个关键优势：<strong>每一条告警都附带明确的规则签名</strong>，运维人员可以立即理解"这是 SYN Flood，规则 ID 12345"。而 DL-NIDS 的深度学习模型是黑盒的，告警只告诉你"Something is wrong"，却不说"What is wrong"和"Why is it wrong"。</p>
+
+  <div class="highlight-box">
+    <strong>SOC 分析师自述 (典型场景):</strong><br>
+    "凌晨 2 点收到 DL-NIDS 告警——某 IP 异常分数 0.88。我花了一个小时手动抓包分析，最后发现是 ARP 扫描 + 异常 DNS 隧道。如果系统能直接告诉我这两个特征贡献了 80% 的异常分数，我一分钟就能确认。更糟的是，确认之后我还得手动写 iptables 规则去阻断——整个过程可能耗费 2 小时，而攻击早已完成横向移动。"
+  </div>
+
+  <h3>1.3 现有解释方法的两个致命缺陷</h3>
+  <p>直接将 LIME、SHAP、LEMNA 等方法应用于 DL-NIDS 时，存在两个根本性的不匹配：</p>
+
+  <div class="grid-2">
+    <div class="finding">
+      <h4>缺陷一: 忽视历史输入 (Ignore Historical Inputs)</h4>
+      <p>RNN/LSTM 型 NIDS 的当前决策 y_t 不仅依赖于当前输入 x_t，还隐式依赖于历史隐状态 h_{t-1}, h_{t-2}, ..., h_{t-k}。LIME 和 SHAP 只扰动当前时间步的 x_t 并观察输出变化——但 x_t 对 y_t 的贡献可能很小（例如当攻击特征主要出现在 x_{t-3} 时），导致解释严重失真。</p>
+      <p><strong>本质原因:</strong> RNN 的隐藏状态 h_t 是对过去输入的压缩编码。x_t 的贡献被 h_{t-1} 稀释或放大。不考虑历史输入相当于忽略了 RNN 的核心机制。</p>
+    </div>
+    <div class="finding">
+      <h4>缺陷二: 忽视结构化特征依赖 (Ignore Structured Feature Dependencies)</h4>
+      <p>网络数据包的特征不是独立的——TCP.flags 是 TCP 协议族的子字段；TCP 和 UDP 是互斥的；src_port=80 意味着 protocol=TCP。LIME 的随机扰动可能产生 protocol=TCP 但 tcp_flags 为空的非法样本，SHAP 的特征置换假设特征独立。</p>
+      <p><strong>本质原因:</strong> 网络协议栈具有层级化结构——链路层 → 网络层 → 传输层 → 应用层，下层是上层的载体。这种天然的层级和分组结构在现有方法的"特征独立"假设下完全丢失。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <strong>两个缺陷的叠加效应:</strong> 当同时忽视历史输入和特征依赖时，解释结果可能完全不可靠。例如，一个 SYN Flood 攻击的真正驱动力是过去 3 秒内 TCP.flags=SYN 的连续异常增加。忽视历史只看当前包——当前包可能恰好是一个正常的 ACK——异常分数"看起来"无法解释；忽视特征依赖则可能将贡献错误地归因到与 TCP 互斥的 UDP 特征上。
+  </div>
+</div>
+
+<!-- ====== 2. Method 1: Historical Input Processing ====== -->
+<div class="card">
+  <h2>2. 方法一: 历史输入处理 — 解决"忽视历史输入"</h2>
+
+  <h3>2.1 问题的形式化</h3>
+  <p>给定 RNN/LSTM 型 NIDS，在时间步 t 的决策 y_t = f(x_t, h_{t-1})，其中 h_{t-1} = g(x_{t-1}, h_{t-2}) = g(x_{t-1}, g(x_{t-2}, ...))。展开来看：</p>
+  <pre><code>y_t = f(x_t, g(x_{t-1}, g(x_{t-2}, g(x_{t-3}, ...))))</code></pre>
+  <p>这意味着 y_t 对整个历史序列 [x_t, x_{t-1}, x_{t-2}, ..., x_1] 都有隐式依赖。但 RNN 的遗忘门机制 (Forget Gate) 使模型对较远的历史依赖呈衰减趋势。因此关键问题变为：<strong>需要采样多少个历史时间步？以什么权重采样？</strong></p>
+
+  <h3>2.2 子方法 A: 动态窗口近似 (Dynamic Window Approximation)</h3>
+
+  <p>核心思想: 通过<strong>自适应二分搜索</strong>确定对当前决策 y_t 有"显著影响"的最小历史窗口长度 l。</p>
+
+  <p><strong>算法流程:</strong></p>
+  <pre><code>Algorithm: Dynamic Window Approximation
+
+Input:  DL-NIDS 模型 f, 当前输入 x_t, 历史序列 [...x_{t-1}, x_t]
+       偏差阈值 δ (默认 10⁻²), 最大迭代次数 U (默认 10)
+Output: 最优历史窗口长度 l*
+
+1. Initialize: l_min = 1, l_max = max_history (默认 32)
+2. For iteration = 1, 2, ..., U:
+3.     l_candidate = ⌊(l_min + l_max) / 2⌋
+4.     // 测试使用 l_candidate 步历史 vs. 使用全部历史的输出偏差
+5.     y_full = f(x_t | x_{t-1}, ..., x_{t-max_history})       // 全历史
+6.     y_approx = f(x_t | x_{t-1}, ..., x_{t-l_candidate})     // 截断历史
+7.     deviation = |y_full - y_approx| / |y_full|
+8.     If deviation < δ:                                      // 偏差够小，可以缩窗口
+9.         l_max = l_candidate
+10.    Else:                                                   // 偏差太大，需要扩窗口
+11.        l_min = l_candidate + 1
+12. Return l* = l_max
+
+// 输出: l* = 当前决策依赖的关键历史长度</code></pre>
+
+  <p><strong>偏差阈值 δ 的选择:</strong> δ = 10⁻² 在实验中证明是一个良好的平衡点——既不过于激进（不会丢失重要历史信息），也不过于保守（不会引入不必要的历史噪声）。对于不同的检测器和攻击类型，δ 可以进行场景化校准。</p>
+
+  <h3>2.3 子方法 B: 加权随机采样 (Weighted Random Sampling, WRS)</h3>
+
+  <p>确定了窗口长度 l 后，不是简单地截取最近 l 个历史输入——这样丢失了 RNN 隐状态中"遗忘门对旧信息的衰减编码"。xNIDS 使用<strong>衰减函数对历史输入进行加权采样</strong>，模拟 RNN 对时间的指数衰减特性。</p>
+
+  <p><strong>三种衰减函数（可配置）:</strong></p>
+
+  <table>
+    <tr><th>衰减类型</th><th>公式</th><th>特性</th><th>适用场景</th></tr>
+    <tr>
+      <td><strong>指数衰减<br>(Exponential Decay)</strong></td>
+      <td><code>w_i = e^{-λ·i}</code></td>
+      <td>权重快速衰减，长距离历史几乎无影响<br>λ 控制衰减速率 (默认 0.3)</td>
+      <td>短时攻击 (DDoS burst, 端口扫描)<br>攻击特征集中在最近几个时间步</td>
+    </tr>
+    <tr>
+      <td><strong>高斯衰减<br>(Gaussian Decay)</strong></td>
+      <td><code>w_i = e^{-i²/(2σ²)}</code></td>
+      <td>近处较平缓，中间快速衰减，尾部趋于零<br>σ 控制衰减尺度 (默认与 l 成比例)</td>
+      <td>中等持续时间的攻击 (SSH brute force)<br>攻击模式持续约 5-10 个时间步</td>
+    </tr>
+    <tr>
+      <td><strong>线性衰减<br>(Linear Decay)</strong></td>
+      <td><code>w_i = 1 - i/l</code></td>
+      <td>均匀递减，所有权重均 > 0<br>不丢失任何历史信息</td>
+      <td>长时持续性攻击 (APT 慢速渗透)<br>攻击可能分布在较长时间窗口中</td>
+    </tr>
+  </table>
+
+  <p><strong>采样过程:</strong></p>
+  <pre><code>// 从 l 个历史输入中采样 m 个 (m < l)
+// 每个历史输入 x_{t-i} 的采样概率正比于 w_i
+
+For j = 1, 2, ..., m:
+    sample_index ~ Multinomial(p_0, p_1, ..., p_{l-1})
+    where p_i = w_i / Σ_k w_k                   // 归一化权重
+
+// 得到 m 个采样样本 {x_{t-i₁}, x_{t-i₂}, ..., x_{t-iₘ}}
+// 用于后续的 Sparse Group Lasso 归因</code></pre>
+
+  <h3>2.4 完整实例: Mirai 攻击序列的历史窗口处理</h3>
+
+  <div class="example-box">
+    <strong>场景:</strong> DL-NIDS (RNN-IDS) 在时间步 t 检测到异常分数 0.91。过去 10 个时间步的流量序列如下：
+
+    <table style="font-size:12px;">
+      <tr><th>时间步</th><th>偏移 i</th><th>流量描述</th><th>特征快照</th></tr>
+      <tr><td>t</td><td>0</td><td>当前包: 正常 DNS 查询</td><td>dns_query=1, syn=0, payload_size=64</td></tr>
+      <tr><td>t-1</td><td>1</td><td>C2 通信确认</td><td>mirai_c2=1, dns_query=0, payload_size=1024</td></tr>
+      <tr><td>t-2</td><td>2</td><td>端口扫描</td><td>syn=1, dst_port=random, payload_size=0</td></tr>
+      <tr><td>t-3</td><td>3</td><td>ARP 扫描</td><td>arp_count=high, syn=0, payload_size=0</td></tr>
+      <tr><td>t-4</td><td>4</td><td>ARP 扫描</td><td>arp_count=high, syn=0, payload_size=0</td></tr>
+      <tr><td>t-5</td><td>5</td><td>正常 HTTP</td><td>dst_port=80, syn=0, payload_size=512</td></tr>
+      <tr><td colspan="4">... (t-6 到 t-9 均为正常流量)</td></tr>
+    </table>
+
+    <br><strong>Step 1 — 动态窗口确定:</strong><br>
+    <code>l_min=1</code>, <code>l_max=10</code><br>
+    迭代 1: l_candidate=5 → y_approx vs y_full deviation = 0.008 < δ → l_max=5<br>
+    迭代 2: l_candidate=3 → y_approx vs y_full deviation = 0.023 > δ → l_min=4<br>
+    迭代 3: l_candidate=4 → y_approx vs y_full deviation = 0.006 < δ → l_max=4<br>
+    <strong>结果: l* = 4</strong> — 最近 4 个时间步对当前决策有显著影响
+
+    <br><br><strong>Step 2 — 加权随机采样 (使用指数衰减 λ=0.3):</strong>
+    <table style="font-size:12px;">
+      <tr><th>偏移 i</th><th>时间步</th><th>原始权重 w_i = e^{-0.3·i}</th><th>归一化概率 p_i</th></tr>
+      <tr><td>0</td><td>t</td><td>e^{0} = 1.000</td><td>0.358</td></tr>
+      <tr><td>1</td><td>t-1</td><td>e^{-0.3} = 0.741</td><td>0.266</td></tr>
+      <tr><td>2</td><td>t-2</td><td>e^{-0.6} = 0.549</td><td>0.197</td></tr>
+      <tr><td>3</td><td>t-3</td><td>e^{-0.9} = 0.407</td><td>0.146</td></tr>
+      <tr><td>4</td><td>t-4</td><td>e^{-1.2} = 0.301</td><td>0.108</td></tr>
+    </table>
+
+    <br>从 4 个候选历史中采样 m=3 个（m 默认取 ⌈l/2⌉）。当前时间步 t 总是被包含（权重最高，因为它直接参与决策函数）。采样结果：{t, t-1, t-2} — 最近 3 个时间步被选中，反映了攻击特征（C2 通信 + 端口扫描）集中在这些时间步。
+
+    <br><br><strong>解释意义:</strong> 如果不做历史输入处理，LIME/SHAP 只能看到 x_t（正常 DNS 查询），会给出完全错误的解释——认为特征是正常的。xNIDS 正确地识别出 t-1 (C2 通信) 和 t-2 (端口扫描) 才是异常分数的主要驱动因素。
+  </div>
+</div>
+
+<!-- ====== 3. Method 2: Feature Grouping + SGL ====== -->
+<div class="card">
+  <h2>3. 方法二: 特征分组 + Sparse Group Lasso — 解决"忽视结构化特征依赖"</h2>
+
+  <h3>3.1 特征分组 (Feature Grouping)</h3>
+  <p>xNIDS 基于<strong>网络协议栈的层级结构</strong>对特征进行分组，每组内的特征在协议语义上强相关，组间的特征相对独立。这种分组反映了网络数据包的内在结构：</p>
+
+  <table>
+    <tr><th>组 ID</th><th>组名</th><th>包含特征</th><th>组内语义</th></tr>
+    <tr>
+      <td>G₁</td>
+      <td><strong>TCP Group</strong></td>
+      <td>src_port, dst_port, tcp_flags (SYN/ACK/FIN/RST/PSH/URG), tcp_window_size, tcp_urgent_ptr, tcp_seq_num, tcp_ack_num</td>
+      <td>TCP 连接的端到端属性，组内特征共同描述一个 TCP 会话状态</td>
+    </tr>
+    <tr>
+      <td>G₂</td>
+      <td><strong>UDP Group</strong></td>
+      <td>udp_src_port, udp_dst_port, udp_length, udp_checksum</td>
+      <td>UDP 数据报的传输属性，与 TCP 组互斥</td>
+    </tr>
+    <tr>
+      <td>G₃</td>
+      <td><strong>IP Header Group</strong></td>
+      <td>ip_ttl, ip_tos, ip_frag_offset, ip_total_length, ip_protocol, ip_version</td>
+      <td>IP 层路由与服务属性，是传输层的基础</td>
+    </tr>
+    <tr>
+      <td>G₄</td>
+      <td><strong>Traffic Statistics Group</strong></td>
+      <td>packet_count, byte_count, flow_duration, pkt_rate, byte_rate, unique_dst_ips, unique_dst_ports, entropy_src_port, entropy_dst_port</td>
+      <td>流级别的统计聚合特征，描述时间窗口内的流量行为模式</td>
+    </tr>
+    <tr>
+      <td>G₅</td>
+      <td><strong>Application Layer Group</strong></td>
+      <td>dns_qtype, dns_rr_type, http_method, http_status, http_content_len, tls_version, tls_cipher_suite</td>
+      <td>应用层协议特征，依赖下层传输特征</td>
+    </tr>
+    <tr>
+      <td>G₆</td>
+      <td><strong>Payload Group</strong></td>
+      <td>payload_entropy, payload_printable_ratio, payload_mean_byte, nn_payload_length, payload_variance</td>
+      <td>载荷字节分布属性，描述数据内容的统计特性</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>分组 vs. 不分组:</strong> 如果不分组而在所有特征上独立做 Lasso 回归，TCP.flags.SYN 和 TCP.flags.ACK 可能被单独选中——但它们共同出现才构成一个完整的 TCP 握手语义。分组后，整个 TCP Group 被作为一个整体评估重要性，更符合安全分析师的直觉——"TCP 层面的异常"而非"TCP.flags 第 3 位异常"。
+  </div>
+
+  <h3>3.2 Sparse Group Lasso (SGL) — 双重稀疏性归因</h3>
+
+  <p>Sparse Group Lasso 是 xNIDS 解释归因的核心数学模型。它融合了两种稀疏性：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>特征级稀疏 (Feature-level Sparsity):</strong> L₁ 正则项 ‖β‖₁ → 筛选出重要的<em>单个特征</em></li>
+    <li><strong>组级稀疏 (Group-level Sparsity):</strong> L₂ 正则项 Σ_g ‖β_g‖₂ → 筛选出重要的<em>整个特征组</em></li>
+  </ul>
+
+  <p><strong>完整损失函数:</strong></p>
+  <pre><code>minimize    L(β) = ‖y - Xβ‖₂² + λ₁‖β‖₁ + λ₂ Σ_g ‖β_g‖₂
+   β
+
+其中:
+  y          = f(x)  (DL-NIDS 的异常分数输出)
+  X          = 采样后的历史输入矩阵 (m 个时间步 × d 个特征)
+  β          = 待估计的归因系数向量 (d 维)
+  β_g        = 第 g 组的归因系数子向量
+  ‖β‖₁       = Σ_j |β_j|                         (L1 正则 → 特征级稀疏)
+  ‖β_g‖₂     = √(Σ_{j∈g} β_j²)                   (L2 正则 → 组级稀疏)
+  λ₁, λ₂     = 超参数，控制两种稀疏性的强度</code></pre>
+
+  <p><strong>λ₁ 和 λ₂ 的作用:</strong></p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>λ₁ (特征稀疏性):</strong> 较大的 λ₁ 会迫使大量的 β_j 变为 0（完全无关的特征被排除）。对安全解释至关重要——分析师不想看到 100 个特征都说"有点重要"，只想看到 3-5 个关键特征。</li>
+    <li><strong>λ₂ (组稀疏性):</strong> 较大的 λ₂ 会迫使整个组的 ‖β_g‖₂ 变为 0（无关的整个协议层被排除）。例如，对于 TCP SYN Flood，UDP Group 的整个 β 向量应被置零——流量根本不是 UDP 的。</li>
+    <li><strong>两者的平衡:</strong> 通过交叉验证选择最优 λ₁/λ₂ 配对。xNIDS 使用网格搜索: λ₁ ∈ {0.01, 0.1, 1.0, 10}, λ₂ ∈ {0.01, 0.1, 1.0, 10}, 共 16 个组合，选择在验证集上解释 Fidelity 最高的组合。</li>
+  </ul>
+
+  <p><strong>优化求解: Proximal Gradient Method (近端梯度法)</strong></p>
+  <pre><code>Algorithm: Proximal Gradient for SGL
+
+Initialize: β⁰ = 0 (全零向量)
+For t = 0, 1, ..., T_max:
+    1. Gradient step: z = βᵗ - α · ∇L_smooth(βᵗ)
+       // α 为步长, ∇L_smooth 是 ‖y - Xβ‖² 的梯度
+    2. Proximal step for L1: β_temp = SoftThreshold(z, α·λ₁)
+       // SoftThreshold(z, θ) = sign(z) · max(|z|-θ, 0)
+    3. Proximal step for group L2: For each group g:
+       βᵗ⁺¹_g = GroupSoftThreshold(β_temp_g, α·λ₂)
+       // GroupSoftThreshold(v, θ) = v · max(1 - θ/‖v‖₂, 0)
+    4. Check convergence: ‖βᵗ⁺¹ - βᵗ‖₂ < ε
+Return β* (稀疏归因系数)</code></pre>
+
+  <h3>3.3 完整实例: SYN Flood 攻击的特征组归因</h3>
+
+  <div class="example-box">
+    <strong>场景:</strong> DL-NIDS 检测到 SYN Flood 攻击（异常分数 0.94）。经过动态窗口 (l*=6) 和 WRS 后，SGL 在 6 组特征上估计归因系数。
+
+    <br><br><strong>SGL 输出 — 各组系数:</strong>
+    <table style="font-size:12px;">
+      <tr><th>组</th><th>‖β_g‖₂</th><th>组级状态</th><th>组内 Top 特征</th><th>β_j</th></tr>
+      <tr style="background:#ffeaea;">
+        <td>G₁ TCP Group</td><td><strong>2.87</strong></td><td><strong>✅ 激活</strong></td>
+        <td>tcp_flags_SYN<br>tcp_flags_ACK<br>dst_port</td>
+        <td>+2.14<br>-0.68<br>+0.34</td></tr>
+      <tr>
+        <td>G₂ UDP Group</td><td><strong>0.00</strong></td><td><strong>❌ 清零</strong></td>
+        <td>(全部为 0)</td>
+        <td>0,0,0,0</td></tr>
+      <tr style="background:#ffeaea;">
+        <td>G₃ IP Header Group</td><td><strong>0.42</strong></td><td><strong>✅ 激活</strong></td>
+        <td>ip_total_length</td>
+        <td>+0.38</td></tr>
+      <tr style="background:#ffeaea;">
+        <td>G₄ Traffic Stats Group</td><td><strong>1.94</strong></td><td><strong>✅ 激活</strong></td>
+        <td>packet_rate<br>unique_dst_ports<br>syn_ack_ratio</td>
+        <td>+1.76<br>+0.52<br>-1.03</td></tr>
+      <tr>
+        <td>G₅ Application Group</td><td><strong>0.00</strong></td><td><strong>❌ 清零</strong></td>
+        <td>(全部为 0)</td>
+        <td>0,0,0,0,0,0</td></tr>
+      <tr>
+        <td>G₆ Payload Group</td><td><strong>0.08</strong></td><td><strong>❌ 清零</strong><br>(低于 λ₂ 阈值)</td>
+        <td>payload_entropy</td><td>0.08</td></tr>
+    </table>
+
+    <br><strong>解释输出:</strong>
+    <ol>
+      <li><strong>组级解释:</strong> TCP Group 和 Traffic Stats Group 被激活，UDP Group 和 Application Group 被完全清零——这准确反映了 SYN Flood 是 TCP 层面的流量统计异常，不涉及 UDP 或应用层。</li>
+      <li><strong>特征级解释 (Top-3):</strong>
+        <ul>
+          <li><code>tcp_flags_SYN: +2.14</code> — SYN 标志位异常高频，远超正常水平</li>
+          <li><code>packet_rate: +1.76</code> — 包速率暴涨，符合洪水攻击特征</li>
+          <li><code>syn_ack_ratio: -1.03</code> — SYN/ACK 比例严重失衡（大量 SYN 无 ACK 响应），这是 SYN Flood 的标志性特征</li>
+        </ul>
+      </li>
+      <li><strong>验证:</strong> SGL 对 SYN Flood 的 Top-3 解释特征（SYN 标志、包速率、SYN/ACK 比）与 Snort 规则 "alert tcp any any -> any any (flags:S; threshold: type both, track by_src, count 100, seconds 1;)" 的检测逻辑完全吻合——这证明了 xNIDS 的解释与安全领域知识高度一致。</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ====== 4. Defense Rule Generation ====== -->
+<div class="card">
+  <h2>4. 防御规则自动生成 — 从解释到行动</h2>
+
+  <h3>4.1 核心设计: 解释 → 规则编译</h3>
+  <p>xNIDS 的防御规则生成模块是框架的"最后一步"——将 SGL 的归因结果（哪些特征/特征组驱动了异常判定）编译为可直接部署的网络防御规则。这个模块是 xNIDS 与所有其他解释方法最本质的区别：<strong>不是解释完就结束，而是解释驱动自动化防御</strong>。</p>
+
+  <h3>4.2 三种规则作用域</h3>
+
+  <table>
+    <tr><th>作用域</th><th>粒度</th><th>适用攻击</th><th>规则示例</th></tr>
+    <tr>
+      <td><strong>Flow-Level<br>(流级别)</strong></td>
+      <td>单个 IP 对 + 端口对的五元组流</td>
+      <td>SSH Brute Force (特定 IP 暴力破解), DNS Tunnel (特定 DNS 流量)</td>
+      <td>阻断 src_ip=10.0.1.5, dst_ip=192.168.1.1, dst_port=22 的 TCP SYN 流量</td>
+    </tr>
+    <tr>
+      <td><strong>Host-Level<br>(主机级别)</strong></td>
+      <td>源 IP 或目标 IP 的整体流量</td>
+      <td>Mirai 僵尸网络 (被控主机所有对外连接), DDoS 攻击源</td>
+      <td>阻断来自 src_ip=192.168.1.105 的所有出站流量（rate limit 100 pps 可配置）</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-Host<br>(多主机级别)</strong></td>
+      <td>子网级别或主机群组</td>
+      <td>横向移动 (多台主机同时被攻击), 大规模扫描</td>
+      <td>阻断来自 subnet=192.168.1.0/24 的对 dst_port=445 和 3389 的流量</td>
+    </tr>
+  </table>
+
+  <h3>4.3 三种阻断策略</h3>
+  <p>基于安全运维的实际需求，xNIDS 支持三种阻断策略，每种都有不同的安全/可用性平衡：</p>
+
+  <table>
+    <tr><th>策略</th><th>操作</th><th>适用场景</th><th>安全权衡</th></tr>
+    <tr>
+      <td><strong>Full Block<br>(完全阻断)</strong></td>
+      <td>DROP 所有匹配流量</td>
+      <td>已确认的攻击（专家确认 TP），攻击可能造成重大损害</td>
+      <td>安全性最高，但误报时可用性损失最大</td>
+    </tr>
+    <tr>
+      <td><strong>Conditional Block<br>(条件阻断)</strong></td>
+      <td>IF 流量特征连续 N 个时间窗持续异常 THEN DROP</td>
+      <td>疑似攻击但置信度不足，需要持续观察</td>
+      <td>安全/可用性折中——避免单次误报导致阻断</td>
+    </tr>
+    <tr>
+      <td><strong>Rate Limit<br>(速率限制)</strong></td>
+      <td>限制匹配流量的速率上限 (如 100 pps)</td>
+      <td>DDoS/Flood 型攻击，不完全阻断但限制攻击效果</td>
+      <td>可用性最高，攻击仍可达但影响范围受控</td>
+    </tr>
+  </table>
+
+  <h3>4.4 多平台兼容性: 统一规则中间表示</h3>
+  <p>xNIDS 设计了一个<strong>平台无关的中间规则表示 (Intermediate Rule Representation, IRR)</strong>，然后通过编译器后端翻译为目标平台的规则语法：</p>
+
+  <pre><code>// xNIDS 中间表示 (IRR) 示例
+{
+  "scope": "flow",
+  "action": "full_block",
+  "conditions": {
+    "src_ip": "192.168.1.105",
+    "dst_port": 22,
+    "protocol": "TCP",
+    "features": { "syn_flag_ratio": "> 0.8", "packet_rate": "> 500" }
+  },
+  "duration": 3600,
+  "priority": 5
+}
+
+// ↓ 编译为目标平台规则 ↓</code></pre>
+
+  <div class="grid-2">
+    <div>
+      <h4>iptables (Linux)</h4>
+      <pre style="font-size:11px;">iptables -A INPUT \
+  -s 192.168.1.105 \
+  -p tcp --dport 22 \
+  -m recent --update --seconds 60 --hitcount 500 \
+  -j DROP</pre>
+    </div>
+    <div>
+      <h4>OpenFlow (SDN)</h4>
+      <pre style="font-size:11px;">ovs-ofctl add-flow br0 \
+  "priority=5,tcp,nw_src=192.168.1.105,\
+  tp_dst=22,actions=drop"</pre>
+    </div>
+    <div>
+      <h4>Pfsense (BSD PF)</h4>
+      <pre style="font-size:11px;">block in quick on em0 proto tcp \
+  from 192.168.1.105 \
+  to any port 22</pre>
+    </div>
+    <div>
+      <h4>Squid (Proxy)</h4>
+      <pre style="font-size:11px;">acl blocked_src src \
+  192.168.1.105
+http_access deny \
+  blocked_src</pre>
+    </div>
+  </div>
+
+  <h3>4.5 安全约束: 白名单与规则审计</h3>
+  <p>为防止自动化防御规则造成破坏（例如阻断了关键业务流量），xNIDS 集成了可配置的安全约束：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>白名单 (Whitelist):</strong> 运维人员可以指定永不被阻断的 IP 地址、端口或协议（如 DNS 服务器 8.8.8.8, 内网认证服务器）。白名单在规则生成阶段作为硬约束——任何匹配白名单的规则自动被过滤。</li>
+    <li><strong>规则冲突检测:</strong> 生成新规则前，检查是否与已有规则冲突（如同一 src_ip 已被彻底阻断，不再生成重复规则）。</li>
+    <li><strong>规则时效:</strong> 每条生成的规则都有 TTL (Time to Live)，默认 3600 秒后自动过期。SOC 分析师可以手动延长或撤销规则。</li>
+    <li><strong>人工确认门控:</strong> 默认配置下，multi-host 级别的规则需要人工确认后才能部署（防止大规模误阻断）。Flow-level 和 Host-level 规则可以自动部署。</li>
+  </ul>
+</div>
+
+<!-- ====== 5. Experimental Results ====== -->
+<div class="card">
+  <h2>5. 实验评估</h2>
+
+  <h3>5.1 数据集与目标模型</h3>
+  <table>
+    <tr><th>数据集</th><th>数据类型</th><th>攻击类型</th><th>DL-NIDS 模型</th><th>样本数</th></tr>
+    <tr><td>Kitsune (Mirai)</td><td>网络流量特征 (表格)</td><td>Mirai 僵尸网络</td><td>Kitsune Autoencoder</td><td>~700K</td></tr>
+    <tr><td>Kitsune (SSDP Flood)</td><td>网络流量特征 (表格)</td><td>SSDP 反射放大攻击</td><td>Kitsune Autoencoder</td><td>~400K</td></tr>
+    <tr><td>Kitsune (SSL Renegotiation)</td><td>网络流量特征 (表格)</td><td>SSL 重协商 DoS</td><td>Kitsune Autoencoder</td><td>~200K</td></tr>
+    <tr><td>ODDS (Synthetic)</td><td>结构化异常检测基准</td><td>多种合成异常</td><td>Autoencoder</td><td>~50K</td></tr>
+    <tr><td>RNN-IDS / CIC-IDS-2017</td><td>网络流记录 (序列)</td><td>DDoS, Brute Force, Infiltration, Botnet</td><td>RNN-IDS (LSTM)</td><td>~2.8M</td></tr>
+  </table>
+
+  <h3>5.2 解释质量指标定义</h3>
+  <p>xNIDS 定义了四个专门针对 NIDS 场景的解释质量指标：</p>
+
+  <table>
+    <tr><th>指标</th><th>定义</th><th>含义</th><th>好值</th></tr>
+    <tr>
+      <td><strong>Fidelity (保真度)</strong></td>
+      <td>AUC of the drop in anomaly score when removing features in descending order of importance</td>
+      <td>解释的排序是否与特征"真实重要性"一致。按重要性递减移除特征时，异常分数下降曲线下面积</td>
+      <td>越低越好<br>(更陡的下降)</td>
+    </tr>
+    <tr>
+      <td><strong>Sparsity (稀疏性)</strong></td>
+      <td>MAZ-AUC: Modified AUC with non-zero feature count penalty</td>
+      <td>能否用最少的特征达到最好的解释。结合了特征数量和 Fidelity 的综合评分</td>
+      <td>越高越好</td>
+    </tr>
+    <tr>
+      <td><strong>Completeness (完整性)</strong></td>
+      <td>Proportion of anomalous samples that receive non-degenerate explanations (≥1 feature has significant attribution)</td>
+      <td>是否所有异常样本都能得到有意义的解释（至少一个特征被识别为重要）</td>
+      <td>越高越好<br>理想 ≥90%</td>
+    </tr>
+    <tr>
+      <td><strong>Stability (稳定性)</strong></td>
+      <td>Top-K feature overlap between repeated explanations of the same sample (Jaccard index)</td>
+      <td>对同一样本的重复解释结果是否一致。反映了解释方法对抗随机性（如 WRS 的采样随机性）的鲁棒性</td>
+      <td>越高越好<br>理想 ≥0.80</td>
+    </tr>
+  </table>
+
+  <h3>5.3 解释质量结果 (详细数据表)</h3>
+
+  <h4>Kitsune 数据集 (DL-NIDS = Autoencoder)</h4>
+  <table>
+    <tr><th>方法</th><th>Fidelity (AUC) ↓</th><th>Sparsity (MAZ-AUC) ↑</th><th>Completeness ↑</th><th>Stability (Top-K) ↑</th></tr>
+    <tr><td>LIME</td><td>0.512</td><td>0.421</td><td>48.2%</td><td>0.621</td></tr>
+    <tr><td>SHAP (KernelSHAP)</td><td>0.478</td><td>0.389</td><td>52.7%</td><td>0.588</td></tr>
+    <tr><td>LEMNA</td><td>0.593</td><td>0.542</td><td>51.1%</td><td>0.647</td></tr>
+    <tr><td>Integrated Gradients</td><td>0.521</td><td>0.458</td><td>44.8%</td><td>0.572</td></tr>
+    <tr><td>LRP</td><td>0.537</td><td>0.472</td><td>46.3%</td><td>0.593</td></tr>
+    <tr style="background:#eaf2f8; font-weight:600;">
+      <td><strong>xNIDS</strong></td>
+      <td><strong>0.316</strong></td>
+      <td><strong>0.774</strong></td>
+      <td><strong>79.4%</strong></td>
+      <td><strong>0.850</strong></td>
+    </tr>
+  </table>
+
+  <h4>ODDS 数据集 (DL-NIDS = Autoencoder)</h4>
+  <table>
+    <tr><th>方法</th><th>Fidelity (AUC) ↓</th><th>Sparsity (MAZ-AUC) ↑</th><th>Completeness ↑</th><th>Stability (Top-K) ↑</th></tr>
+    <tr><td>LIME</td><td>0.489</td><td>0.447</td><td>47.6%</td><td>0.635</td></tr>
+    <tr><td>SHAP</td><td>0.461</td><td>0.413</td><td>50.2%</td><td>0.604</td></tr>
+    <tr><td>LEMNA</td><td>0.567</td><td>0.528</td><td>49.8%</td><td>0.659</td></tr>
+    <tr style="background:#eaf2f8; font-weight:600;">
+      <td><strong>xNIDS</strong></td>
+      <td><strong>0.325</strong></td>
+      <td><strong>0.814</strong></td>
+      <td><strong>82.1%</strong></td>
+      <td><strong>0.861</strong></td>
+    </tr>
+  </table>
+
+  <h4>RNN-IDS / CIC-IDS-2017 (DL-NIDS = LSTM)</h4>
+  <table>
+    <tr><th>方法</th><th>Fidelity (AUC) ↓</th><th>Sparsity (MAZ-AUC) ↑</th><th>Completeness ↑</th><th>Stability (Top-K) ↑</th></tr>
+    <tr><td>LIME</td><td>0.553</td><td>0.398</td><td>41.9%</td><td>0.587</td></tr>
+    <tr><td>SHAP</td><td>0.524</td><td>0.367</td><td>44.3%</td><td>0.561</td></tr>
+    <tr><td>LEMNA</td><td>0.481</td><td>0.611</td><td>56.7%</td><td>0.704</td></tr>
+    <tr style="background:#eaf2f8; font-weight:600;">
+      <td><strong>xNIDS</strong></td>
+      <td><strong>0.289</strong></td>
+      <td><strong>0.842</strong></td>
+      <td><strong>86.3%</strong></td>
+      <td><strong>0.914</strong></td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>关键观察:</strong>
+    <ol>
+      <li><strong>Fidelity:</strong> xNIDS 的 Fidelity AUC 在三个数据集上都是最低的 (Kitsune: 0.316, ODDS: 0.325, RNN-IDS: 0.289)，这意味着按 xNIDS 重要性排序移除特征时异常分数下降最快——解释排序最准确。</li>
+      <li><strong>Sparsity:</strong> xNIDS 的 MAZ-AUC 远超所有基线 (Kitsune: 0.774 vs LEMNA 0.542)，证明了 SGL 的双重稀疏性设计确实能用更少的特征达到更好的解释保真度。</li>
+      <li><strong>Stability:</strong> xNIDS 在 RNN-IDS 上达到 0.914，证明 WRS 的随机采样虽然引入了随机性，但 SGL 的稳定性补偿了这一点（通过 L2 正则使组内系数的分配更加平滑）。</li>
+      <li><strong>Completeness:</strong> 仍有一定比例样本未能得到非退化解释 (Kitsune 79.4%, RNN-IDS 86.3%)，表明在某些边界情况下 SGL 可能将所有 β 系数压缩为零——这是 Sparse Group Lasso 的固有问题。</li>
+    </ol>
+  </div>
+
+  <h3>5.4 防御效果评估</h3>
+
+  <table>
+    <tr><th>指标</th><th>结果</th><th>说明</th></tr>
+    <tr>
+      <td><strong>恶意流量阻断率</strong></td>
+      <td><strong>95.72%</strong></td>
+      <td>在所有确认的攻击样本中，生成的防御规则成功阻断了 95.72% 的恶意流量</td>
+    </tr>
+    <tr>
+      <td><strong>良性流量通过率</strong></td>
+      <td><strong>98.54%</strong></td>
+      <td>在正常流量样本中，仅 1.46% 被误阻断（主要来源于 flow-level 规则的过度匹配）</td>
+    </tr>
+    <tr>
+      <td><strong>误阻断率 (FBR)</strong></td>
+      <td>1.46%</td>
+      <td>误阻断主要集中在条件阻断策略中——持续异常的判断窗口内正常波动被误判</td>
+    </tr>
+    <tr>
+      <td><strong>解释延迟 (P95)</strong></td>
+      <td>~580ms</td>
+      <td>> 90% 的样本在 600ms 内完成解释 (Historical+WRS+SGL+RuleGen)</td>
+    </tr>
+    <tr>
+      <td><strong>解释延迟 (中位数)</strong></td>
+      <td>~340ms</td>
+      <td>50% 的样本在 340ms 内完成</td>
+    </tr>
+    <tr>
+      <td><strong>规则生成延迟 (平均)</strong></td>
+      <td>~25ms</td>
+      <td>从解释结果到生成目标平台规则的时间，与平台无关（IRR 中间层开销极小）</td>
+    </tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>延迟分析 — 600ms 的实际意义:</strong> 对于 SOC 分析师的手动响应流程（通常 30 分钟到 2 小时），600ms 的自动解释延迟是完全可忽略的。即使是半自动化的 SOC 工作流（分析师确认自动化规则），600ms 也远低于人的认知处理时间 (5-15 秒)。但对于 100Gbps+ 的骨干网全自动防御场景，600ms 意味着约 7.5GB 的流量在等待处理——这确实不够。xNIDS 的作者也承认这一限制，并建议在此类场景下采用并行化 + GPU 加速。
+  </div>
+
+  <h3>5.5 消融实验</h3>
+  <table>
+    <tr><th>变体</th><th>描述</th><th>Fidelity (Kitsune)</th><th>Completeness</th></tr>
+    <tr>
+      <td>xNIDS (Full)</td>
+      <td>Historical + Group + SGL</td>
+      <td><strong>0.316</strong></td>
+      <td><strong>79.4%</strong></td>
+    </tr>
+    <tr>
+      <td>xNIDS w/o Historical</td>
+      <td>移除动态窗口和 WRS，仅使用当前 x_t</td>
+      <td>0.478</td>
+      <td>52.3%</td>
+    </tr>
+    <tr>
+      <td>xNIDS w/o Grouping</td>
+      <td>移除特征分组，仅使用普通 Lasso (λ₂=0)</td>
+      <td>0.385</td>
+      <td>71.6%</td>
+    </tr>
+    <tr>
+      <td>xNIDS w/o SGL (Lasso only)</td>
+      <td>仅 L₁ 正则，无组稀疏</td>
+      <td>0.403</td>
+      <td>74.8%</td>
+    </tr>
+    <tr>
+      <td>xNIDS w/o SGL (Group Lasso only)</td>
+      <td>仅 L₂ 组正则，无特征级稀疏</td>
+      <td>0.372</td>
+      <td>77.1%</td>
+    </tr>
+  </table>
+
+  <p>消融实验证明：<strong>历史输入处理和特征分组都对解释质量有显著贡献，且存在互补效应</strong>——单独移除任何一个都会导致 Fidelity 退化 20-50%。双稀疏（L₁ + 组 L₂）优于单一稀疏方案。</p>
+</div>
+
+<!-- ====== 6. Comparison ====== -->
+<div class="card">
+  <h2>6. 与现有方法的多维对比</h2>
+
+  <table>
+    <tr><th>维度</th><th>LIME</th><th>SHAP</th><th>LEMNA</th><th>DeepAID</th><th>xNIDS</th></tr>
+    <tr>
+      <td><strong>发表年份 / 会议</strong></td>
+      <td>2016 / KDD</td>
+      <td>2017 / NeurIPS</td>
+      <td>2018 / CCS</td>
+      <td>2021 / CCS</td>
+      <td><strong>2023 / USENIX Sec</strong></td>
+    </tr>
+    <tr>
+      <td><strong>监督范式</strong></td>
+      <td>监督</td>
+      <td>监督</td>
+      <td>监督</td>
+      <td>无监督</td>
+      <td><strong>监督 + 无监督</strong></td>
+    </tr>
+    <tr>
+      <td><strong>处理历史输入</strong></td>
+      <td>❌ 仅当前 x_t</td>
+      <td>❌ 仅当前 x_t</td>
+      <td>❌ 仅当前 x_t</td>
+      <td>❌ 单样本</td>
+      <td><strong>✅ 动态窗口 + WRS</strong></td>
+    </tr>
+    <tr>
+      <td><strong>特征依赖建模</strong></td>
+      <td>❌ 独立假设</td>
+      <td>❌ 独立假设</td>
+      <td>部分 (序列相邻)</td>
+      <td>✅ 四类约束</td>
+      <td><strong>✅ 特征分组 + SGL</strong></td>
+    </tr>
+    <tr>
+      <td><strong>防御规则生成</strong></td>
+      <td>❌</td>
+      <td>❌</td>
+      <td>❌</td>
+      <td>❌ (有模型改进)</td>
+      <td><strong>✅ iptables / OpenFlow / PfSense / Squid</strong></td>
+    </tr>
+    <tr>
+      <td><strong>安全场景特化</strong></td>
+      <td>通用</td>
+      <td>通用</td>
+      <td>安全 (有限)</td>
+      <td>安全异常检测</td>
+      <td><strong>NIDS 专用</strong></td>
+    </tr>
+    <tr>
+      <td><strong>支持的数据类型</strong></td>
+      <td>表格/文本/图像</td>
+      <td>通用</td>
+      <td>序列</td>
+      <td>表格/序列/图</td>
+      <td><strong>网络流量序列/表格</strong></td>
+    </tr>
+    <tr>
+      <td><strong>白盒 / 黑盒</strong></td>
+      <td>黑盒 (查询接口)</td>
+      <td>均可</td>
+      <td>白盒 (需梯度)</td>
+      <td>白盒 (需梯度)</td>
+      <td><strong>白盒 (需梯度)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>输出形式</strong></td>
+      <td>线性模型权重</td>
+      <td>Shapley 值</td>
+      <td>特征排名</td>
+      <td>Top-K 特征偏差</td>
+      <td><strong>Top-K 系数 + 可执行规则</strong></td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>xNIDS 的独特定位:</strong> 在现有方法中，xNIDS 是<strong>唯一同时提供历史上下文感知、结构化特征分组、以及自动防御规则生成的框架</strong>。它不是"比 LIME/SHAP 更好的解释器"，而是"为 DL-NIDS 场景从零设计的解释-防御联合系统"。DeepAID 和 xNIDS 互补——DeepAID 擅长无监督异常检测的解释与模型改进，xNIDS 擅长 NIDS 的解释与行动化防御。
+  </div>
+</div>
+
+<!-- ====== 7. Limitations ====== -->
+<div class="card">
+  <h2>7. 局限性与改进方向</h2>
+
+  <div class="critique-box">
+    <h3>7.1 白盒依赖: 需要访问 DL-NIDS 内部结构</h3>
+    <p>xNIDS 的 Sparse Group Lasso 需要 DL-NIDS 的输出 y 和内部梯度信息（用于 Fidelity 评估中的特征移除验证）。对于商业闭源 NIDS（如 Darktrace、Vectra），xNIDS 无法直接应用，因为无法获取模型内部结构或梯度。</p>
+    <p>这在企业中是一个实际问题——许多企业部署的是商业 IDS，而商业 IDS 通常不开放模型访问。xNIDS 要求 NIDS 厂商开放模型白盒访问或提供梯度接口，这在商业部署中可能难以实现。</p>
+    <p><strong>改进方向:</strong> 黑盒适配——使用零阶优化或有限差分近似 SGL 中的模型线性化。代价是计算开销增加（需要多次模型查询）和解释精度下降（梯度近似误差）。或推动 IDS 行业标准：要求 NIDS 产品提供标准化的"解释 API"（输入样本 → 输出异常分数 + 内部表示向量）。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.2 特征分组质量影响解释质量</h3>
+    <p>当前的特征分组是基于网络协议栈层级手动定义的静态分组。这种分组存在两个问题:</p>
+    <ul>
+      <li><strong>过于粗粒度:</strong> TCP Group 包含了 8+ 个特征，但在某些攻击场景下（如 TCP RST Flood），RST 标志和 SYN 标志的重要性完全不同——将它们放在同一组可能稀释关键单个特征的归因。</li>
+      <li><strong>静态分组不适应新协议:</strong> QUIC (HTTP/3) 融合了传输层和应用层特性，其头部字段的归属组无法用传统的 TCP/UDP 分组覆盖。</li>
+    </ul>
+    <p><strong>改进方向:</strong> 数据驱动的动态分组——基于特征间互信息自动发现分组结构，或使用层次聚类动态确定最优分组粒度。也可以采用多尺度分组策略：在粗粒度（协议层）和细粒度（特征对）之间多级归因。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.3 实时性限制</h3>
+    <p>xNIDS 的 P95 解释延迟约为 600ms（包括历史窗口搜索、WRS、SGL 优化、规则编译）。对于企业 SOC 场景这是可接受的，但对于以下场景不够：</p>
+    <ul>
+      <li><strong>100Gbps+ 骨干网:</strong> 需要微秒级决策延迟</li>
+      <li><strong>5G 核心网:</strong> URLLC 场景要求毫秒级端到端延迟</li>
+      <li><strong>高频交易网络:</strong> 纳秒级延迟容忍</li>
+    </ul>
+    <p><strong>改进方向:</strong> 预计算优化——对常见攻击模式预先计算热点解释模板，运行时仅需匹配和微调；GPU 并行化将批量样本的 SGL 求解并行化；或将动态窗口搜索改为查找表（常见攻击的窗口长度可预训练）。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.4 防御规则的作用域受限</h3>
+    <p>xNIDS 生成的防御规则主要针对已知攻击类型（Mirai, DoS, Brute Force, Scanning）。对于以下攻击类型，规则生成能力有限：</p>
+    <ul>
+      <li><strong>0-day 攻击:</strong> 模型本身可能检测不到，自然也无法解释和生成规则</li>
+      <li><strong>APT 慢速攻击:</strong> 攻击特征分布在极长时间窗口（数天到数月），超出动态窗口的最大搜索范围</li>
+      <li><strong>加密流量攻击:</strong> 特征向量主要来自流统计（包大小、间隔时间等），可解释性本身较低——"为什么包大小分布变化意味着攻击？"</li>
+    </ul>
+    <p><strong>改进方向:</strong> 与流量预训练模型 (如 ET-BERT, MM4flow) 结合——预训练模型可以提取更丰富的加密流量语义表示，xNIDS 在更高质量的特征空间上做归因和规则生成。</p>
+  </div>
+
+  <div class="critique-box">
+    <h3>7.5 WRS 采样随机性导致解释不完全确定性</h3>
+    <p>加权随机采样 (WRS) 引入了随机性——同一异常样本的两次解释可能因为采样到了不同的历史子集而产生略微不同的 Top-K 特征排序。论文报告的 Stability 为 0.850-0.914（Top-K Jaccard 重叠），这意味着仍有 9-15% 的 Top-K 特征在不同运行中不一致。</p>
+    <p><strong>改进方向:</strong> 使用确定性采样策略（如 top-k weighted selection 替代随机采样）；或多次采样 + 聚合（Bagging 风格，对多次 WRS-SGL 的结果取中位数或按频率排序）。</p>
+  </div>
+</div>
+
+<!-- ====== 8. Significance ====== -->
+<div class="card">
+  <h2>8. 学术意义与本仓库研究关联</h2>
+
+  <h3>8.1 在 SHAP → 安全解释 演进脉络中的位置</h3>
+  <p>xNIDS 是本仓库"SHAP 谱系"中的关键一环，填补了从通用解释到 NIDS 专用解释的空白：</p>
+  <div class="flow">
+    <div class="step">SHAP (2017)<br><small>通用 Shapley 值</small></div>
+    <div class="arrow">→</div>
+    <div class="step">LEMNA (2018)<br><small>安全序列解释</small></div>
+    <div class="arrow">→</div>
+    <div class="step">DeepAID (2021)<br><small>无监督异常解释</small></div>
+    <div class="arrow">→</div>
+    <div class="step"><strong>xNIDS (2023)</strong><br><small>NIDS 解释 + 防御</small></div>
+    <div class="arrow">→</div>
+    <div class="step">GEAD (2024)<br><small>全局规则解释</small></div>
+  </div>
+
+  <h3>8.2 与流量预训练模型的直接关联</h3>
+  <p>将 ET-BERT 或 MM4flow 等流量预训练 Transformer 部署为 NIDS 时，面临的核心信任问题是：<strong>Transformer 的自注意力机制在做什么？为什么这个流量被判定为攻击？</strong></p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li>xNIDS 的特征分组方法可以适配到 Transformer 的注意力头分组——将注意力头按关注的协议层（TCP/UDP/DNS/TLS）分组，用 SGL 在注意力模式上做归因。</li>
+    <li>xNIDS 的历史输入处理思想与 Transformer 的位置编码和上下文窗口直接对应——Transformer 本身就是"考虑了历史上下文"的模型，xNIDS 的动态窗口可以泛化为"动态上下文窗口"。</li>
+    <li>xNIDS 的防御规则生成可以直接为流量预训练模型的检测结果生成可执行防御——弥合"预训练模型检测到攻击"与"防御系统执行阻断"之间的鸿沟。</li>
+  </ul>
+
+  <h3>8.3 xNIDS + DeepAID 的互补关系</h3>
+  <table>
+    <tr><th>维度</th><th>DeepAID</th><th>xNIDS</th><th>互补关系</th></tr>
+    <tr><td>目标场景</td><td>通用安全异常检测</td><td>NIDS 网络入侵检测</td><td>DeepAID 泛化场景 + xNIDS 垂直深耕</td></tr>
+    <tr><td>核心创新</td><td>反事实参考 + Distiller</td><td>历史上下文 + SGL + 防御规则</td><td>互补：没有理论重叠</td></tr>
+    <tr><td>输出</td><td>Top-K 特征偏差 + 模型改进</td><td>Top-K 特征系数 + 防御规则</td><td>解释 + 改进 vs 解释 + 行动</td></tr>
+    <tr><td>时序支持</td><td>受限 (单样本)</td><td>完整 (RNN 历史建模)</td><td>xNIDS 可增强 DeepAID 的序列能力</td></tr>
+    <tr><td>模型改进</td><td>✅ Distiller 闭环</td><td>❌ (但可生成防御规则)</td><td>DeepAID 修模型，xNIDS 用模型结果</td></tr>
+  </table>
+</div>
+
+<!-- ====== 9. Summary ====== -->
+<div class="card">
+  <h2>9. 总结</h2>
+  <p>xNIDS 的核心贡献可以概括为 <strong>"两个填补、一个创新、一个闭环"</strong>：</p>
+  <ul style="margin: 10px 20px; line-height:2.0;">
+    <li><strong>填补一:</strong> 通过动态窗口近似 + 加权随机采样，填补了现有解释方法"忽视 RNN 历史输入"的空白。这不仅仅是方法层面的增量改进——它准确识别了 RNN 模型的核心机制（隐状态的时间累积效应），并设计了与 RNN 机制一致的解释策略。</li>
+    <li><strong>填补二:</strong> 通过特征分组 + Sparse Group Lasso，填补了现有解释方法"忽视网络特征结构化依赖"的空白。基于网络协议栈层级结构的分组策略直接对应安全分析师的思维模式——按协议层思考流量异常。</li>
+    <li><strong>一个创新:</strong> 从解释到防御规则的自动编译——xNIDS 是目前唯一实现"DL-NIDS 检测 → 解释 → 自动防御规则"全链路的框架。这不仅是方法论创新，更是工程实践上的突破。</li>
+    <li><strong>一个闭环:</strong> 检测 → 解释 → 防御 → (阻断后) 新检测，构成了安全运维的完整闭环。虽然不如 DeepAID 的 Distiller 那样可以对模型本身进行改进，但 xNIDS 的闭环更侧重于"安全行动的自动化"而非"模型质量的提升"。</li>
+  </ul>
+  <p>在本仓库的研究背景下，xNIDS 为"流量预训练模型 + 可解释性"的研究方向提供了一个关键的参考模板：<strong>如何将黑盒 Transformer 的决策转化为安全分析师可以理解、信任并据此行动的信息。</strong>这恰恰是将流量预训练模型从"学术 Demo"推进到"生产级 NIDS"所必须攻克的核心挑战。</p>
+</div>
+
+</div>
+</body>
+</html>

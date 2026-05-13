@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEAD (CCS 2024) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- Hero -->
+<div class="hero">
+  <span class="tag" style="background:#e74c3c;">CCS 2024 · Distinguished Artifact Award</span>
+  <h1>GEAD: Rules Refine the Riddle — Global Explanation for Deep Learning-Based Anomaly Detection</h1>
+  <div class="subtitle">From Per-Sample Why to Global Rule Sets: Knowledge Distillation, Low-Confidence Augmentation, and Three Operational Modes for Security Teams</div>
+  <div class="meta">
+    <span>🏛️ Tsinghua + SMU + NTU + State Grid Shanghai</span>
+    <span>✍️ Han et al.</span>
+    <span>📅 ACM CCS 2024 · Acceptance Rate 16%</span>
+    <span>🏆 CCS历史首个 Distinguished Artifact Award</span>
+  </div>
+</div>
+
+<!-- 1. Motivation -->
+<div class="card">
+<h2>1. 研究动机：从"为什么这个样本异常"到"模型如何定义异常"</h2>
+
+<h3>1.1 局部解释的边界</h3>
+<p>在GEAD之前，DL模型的可解释性研究主要集中在<strong>局部方法</strong>上。LIME为单个预测生成局部线性近似，SHAP计算每个特征对该预测的边际贡献，DeepAID通过寻找最相似参考样本来解释异常检测结果。这些方法有效地回答了<strong>"为什么这个特定样本被模型标记为异常？"</strong>——一个典型的逐案调查问题。</p>
+
+<p>然而，安全运维（SecOps）的实践者面临的是一个<strong>更根本的问题</strong>：他们需要理解模型<strong>整体的决策逻辑</strong>，而非逐样本分析。当SOC（Security Operations Center）团队决定是否部署一个DL异常检测模型时，他们问道：</p>
+<ul>
+  <li>这个模型到底认为什么是"异常"？</li>
+  <li>模型的判定规则是否与我们已知的攻击模式一致？</li>
+  <li>模型和我们的安全专家之间是否存在认知差距？如果有，差距在哪里？</li>
+</ul>
+
+<p>这些问题本质上是<strong>全局性的</strong>——要求对整个模型决策逻辑的系统性理解，而非对单个样本的归因。</p>
+
+<h3>1.2 "局部 → 全局"的演化</h3>
+<p>GEAD的研究团队与DeepAID (CCS 2021) 同属清华大学。这一学术谱系是理解GEAD的关键背景——GEAD不是从零开始的新方法，而是<strong>DeepAID的自然延伸和扩展</strong>：</p>
+
+<pre>
+DeepAID (CCS 2021)                    GEAD (CCS 2024)
+─────────────────────      ──→      ─────────────────────
+局部解释                              全局解释
+"这个连接为什么被判为异常？"          "模型整体上如何定义'异常'？"
+单样本参考解释                        全局规则集
+逐案分析                              系统性理解
+</pre>
+
+<p>这一"局部→全局"的演化路径代表了一个重要的范式转换：从<strong>事后调查工具</strong>到<strong>事前决策支持系统</strong>。</p>
+
+<div class="finding">
+<strong>GEAD的核心命题</strong>：在安全运营场景中，全局理解比局部解释<strong>更具操作相关性</strong>。安全团队需要的是一套可以逐条审计、与专家知识对照、并做出部署/不部署决策的模型行为描述——这正是GEAD提供的规则集。
+</div>
+</div>
+
+<!-- 2. GEAD Framework 6 Steps -->
+<div class="card">
+<h2>2. GEAD 框架：六步全局规则提取</h2>
+
+<p>GEAD = <strong>G</strong>lobal <strong>E</strong>xplanation for <strong>A</strong>nomaly <strong>D</strong>etection。其核心思想是通过<strong>知识蒸馏</strong>（Knowledge Distillation）将黑盒DL异常检测模型的行为<strong>翻译</strong>为人类可读的IF-THEN规则集。以下是完整的六步流程：</p>
+
+<div class="flow">
+  <div class="step">Step 1<br>根回归树生成</div>
+  <div class="arrow">→</div>
+  <div class="step">Step 2<br>低置信区域识别</div>
+  <div class="arrow">→</div>
+  <div class="step">Step 3<br>低置信数据增强</div>
+  <div class="arrow">→</div>
+  <div class="step">Step 4<br>低置信规则生成</div>
+  <div class="arrow">→</div>
+  <div class="step">Step 5<br>树合并与离散化</div>
+  <div class="arrow">→</div>
+  <div class="step">Step 6<br>规则输出</div>
+</div>
+
+<h3>Step 1: Root Regression Tree Generation（根回归树生成）</h3>
+<pre>
+Input:  training data D_train, blackbox anomaly detection model M
+Output: regression tree T_root
+
+1. For each x in D_train:
+       ŷ = M.predict(x)        # 获取黑盒模型的 anomaly score
+   → 构造标注数据集 D_pseudo = {(x_i, ŷ_i)}
+
+2. T_root = train_regression_tree(D_pseudo, target=ŷ)
+   # 使用 CART 算法，最小化 MSE loss:
+   # L = Σ (tree_output(x) - M.predict(x))²
+</pre>
+
+<p><strong>设计原理</strong>：根回归树是GEAD的<strong>初步全局近似</strong>。注意GEAD使用的是<strong>回归树</strong>（输出连续的anomaly score），而非分类树。这允许GEAD捕捉异常的"程度"信息，而非仅仅"正常/异常"二元判断。根回归树的目标是最小化自身输出与黑盒模型输出之间的均方误差。</p>
+
+<p><strong>为什么是回归树？</strong>异常检测模型的输出是<strong>连续的异常分数</strong>（anomaly score），而非离散的类别标签。分类树只能输出离散类别，会丢失异常程度的连续信息。回归树可以精确拟合连续的异常分数，保留原始模型的完整信息。</p>
+
+<h3>Step 2: Low-Confidence Region Identification（低置信区域识别）</h3>
+<p>这是GEAD的核心创新机制。单棵回归树不可避免地存在<strong>近似误差</strong>——在某些数据区域，树的预测与黑盒模型预测之间存在显著差异。GEAD不满足于"总体上还行"的近似，而是<strong>主动识别并补救</strong>这些低置信区域。</p>
+
+<pre>
+Algorithm: Low-Confidence Region Identification
+Input:  root tree T_root, blackbox model M, training data D
+Output: set of low-confidence regions R_low
+
+For each sample x in D:
+    ŷ_tree = T_root.predict(x)
+    ŷ_blackbox = M.predict(x)
+    error_x = |ŷ_tree - ŷ_blackbox|
+
+# 识别误差显著的样本
+D_low = {x : error_x > threshold_or_percentile}
+
+# 使用聚类或密度估计识别低置信区域
+R_low = cluster_or_density_estimate(D_low)
+</pre>
+
+<p><strong>低置信的定义</strong>：GEAD使用两种策略定义"低置信"：</p>
+<ul>
+  <li><strong>绝对误差阈值</strong>：|tree_output - model_output| > τ（如 τ = 0.1，归一化后）</li>
+  <li><strong>百分位阈值</strong>：取误差分布的后p%（如p = 10），即拟合最差的那部分样本</li>
+</ul>
+
+<p>识别出的低置信区域R_low是下一步增强的目标区域——在这些区域中，根回归树的近似不可靠，需要额外的规则补充。</p>
+
+<h3>Step 3: Low-Confidence Augmentation（低置信数据增强）</h3>
+<p>识别出低置信区域后，GEAD在<strong>这些区域内生成合成数据</strong>以暴露树-模型之间的差异：</p>
+
+<pre>
+Algorithm: Low-Confidence Data Augmentation
+Input:  low-confidence samples D_low, blackbox model M
+Output: augmented dataset D_aug
+
+D_aug = copy(D_low)
+
+For each pair (x_i, x_j) in D_low:
+    # 线性插值
+    x_interp = λ * x_i + (1 - λ) * x_j     # λ ~ Uniform(0,1)
+    ŷ_interp = M.predict(x_interp)
+    D_aug.add((x_interp, ŷ_interp))
+
+    # 高斯扰动
+    x_perturbed = x_i + ε                  # ε ~ N(0, σ²)
+    ŷ_perturbed = M.predict(x_perturbed)
+    D_aug.add((x_perturbed, ŷ_perturbed))
+
+Return D_aug
+</pre>
+
+<p><strong>增强策略</strong>：</p>
+<ul>
+  <li><strong>线性插值（Interpolation）</strong>：在两个低置信样本之间生成中间样本——这可以捕捉到模型在"特征空间中两个已知困难点之间"的行为</li>
+  <li><strong>高斯扰动（Perturbation）</strong>：在低置信样本附近生成噪声变体——这可以探测模型在"已知困难点附近"的决策行为</li>
+</ul>
+
+<p>这两个策略共同确保增强数据既能<strong>覆盖低置信区域的内部</strong>（插值），又能<strong>探索低置信区域的边界</strong>（扰动）。</p>
+
+<h3>Step 4: Low-Confidence Rule Generation（低置信规则生成）</h3>
+<p>在增强数据上训练<strong>补充规则</strong>以覆盖根回归树在低置信区域的不足：</p>
+
+<pre>
+Algorithm: Low-Confidence Rule Generation
+Input:  augmented low-confidence data D_aug, blackbox model M
+Output: rule set R_supplement
+
+# Option A: 训练补充决策树
+T_supplement = train_regression_tree(D_aug, target=ŷ_blackbox)
+R_supplement = extract_rules(T_supplement)
+
+# Option B: 直接学习IF-THEN规则（如使用RIPPER、CN2等规则学习算法）
+R_supplement = rule_learning_algorithm(D_aug, target=ŷ_blackbox)
+</pre>
+
+<p>注意这里生成的<strong>是补充规则，而非替代规则</strong>。最终规则集由根回归树规则 + 低置信补充规则共同构成——确保对全体数据和困难区域都有良好覆盖。</p>
+
+<h3>Step 5: Tree Merging and Discretization（树合并与离散化）</h3>
+
+<h4>5a: Tree Merging（树合并）</h4>
+<pre>
+R_final = merge(R_root, R_supplement)
+# 处理规则冲突、冗余和覆盖重叠
+# 优先级: 补充规则 > 根树规则（在低置信区域）
+</pre>
+
+<p>合并策略：在低置信区域，补充规则覆盖根树规则；在其他区域，根树规则独立运作。这确保了规则集的<strong>全局一致性</strong>。</p>
+
+<h4>5b: Discretization（离散化）</h4>
+<p>将回归树中的<strong>连续数值阈值</strong>转化为<strong>人类可读的区间描述</strong>：</p>
+
+<table>
+  <tr><th>离散化前（原始树阈值）</th><th>离散化后（人类可读）</th></tr>
+  <tr><td><code>feature_3 > 0.734</code></td><td><code>packet_rate > 100/s</code>（高包速率）</td></tr>
+  <tr><td><code>feature_12 <= 0.156</code></td><td><code>avg_payload_entropy < 2.5 bits/byte</code>（低载荷熵）</td></tr>
+  <tr><td><code>0.3 < feature_7 <= 0.8</code></td><td><code>flow_duration 在 5s 到 60s 之间</code>（中等时长流）</td></tr>
+</table>
+
+<div class="highlight-box">
+<strong>离散化的核心价值</strong>：连续阈值（如feature_3 > 0.734）对于安全分析师来说毫无意义。离散化将这些数值映射到<strong>安全领域有意义的概念区间</strong>——"高包速率"、"低载荷熵"、"中等时长流"——使得每条规则都可以直接在安全语义层面被理解和验证。
+</div>
+
+<h3>Step 6: Rule Generation & Output（规则生成和输出）</h3>
+<p>最终输出为结构化的IF-THEN规则列表：</p>
+
+<pre>
+# GEAD Rule Set Output
+Rule 1: IF packet_rate > 100/s AND dst_port == 443 AND avg_payload_len < 50
+        THEN anomaly_score = HIGH (0.85-1.0) [TYPE: DDoS-like behavior]
+        Coverage: 12.3% | Confidence: 0.94
+
+Rule 2: IF failed_login_attempts > 5 AND source_ip_entropy > 0.7
+        THEN anomaly_score = HIGH (0.75-0.95) [TYPE: Brute force pattern]
+        Coverage: 8.1% | Confidence: 0.91
+
+Rule 3: IF flow_duration > 600s AND packet_rate < 10/s AND port == 22
+        THEN anomaly_score = LOW (0.0-0.15) [TYPE: Normal SSH session]
+        Coverage: 15.7% | Confidence: 0.96
+
+...
+</pre>
+
+<p>每条规则包含：前提条件（IF部分）、异常分数范围（THEN部分）、异常类型标注、覆盖率和置信度。这一格式使得安全团队可以<strong>逐条审计</strong>每一条规则的安全合理性。</p>
+</div>
+
+<!-- 3. Knowledge Distillation Principle -->
+<div class="card">
+<h2>3. 知识蒸馏原理</h2>
+
+<p>GEAD的核心技术路线是<strong>知识蒸馏</strong>（Knowledge Distillation），其角色分工如下：</p>
+
+<table>
+  <tr><th>角色</th><th>实体</th><th>特性</th><th>目标</th></tr>
+  <tr>
+    <td><strong>Teacher（教师）</strong></td>
+    <td>黑盒DL异常检测模型</td>
+    <td>高准确率、不可解释、无法审计</td>
+    <td>提供准确的异常判断</td>
+  </tr>
+  <tr>
+    <td><strong>Student（学生）</strong></td>
+    <td>可解释决策树/规则集</td>
+    <td>可解释、可审计、可验证</td>
+    <td>最大化模仿教师行为</td>
+  </tr>
+</table>
+
+<pre>
+Knowledge Distillation in GEAD:
+
+Blackbox DL Model (Teacher)          Rule Set (Student)
+     ┌──────────┐                      ┌──────────────┐
+     │  Deep NN  │ ──predict──→ ŷ      │  IF-THEN Rules │
+     │ (Complex, │                     │ (Simple,       │
+     │  Opaque)  │                     │  Interpretable)│
+     └──────────┘                      └──────────────┘
+           │                                  │
+           │   Loss = Σ (ŷ_student - ŷ_teacher)²
+           └──────────────────────────────────┘
+</pre>
+
+<p>蒸馏目标函数：</p>
+<pre>Loss = MSE(ŷ_student, ŷ_teacher) + λ * complexity_penalty</pre>
+
+<p><strong>第一项（MSE）</strong>确保学生（规则集）的预测尽可能接近教师（黑盒模型）的预测。<strong>第二项（complexity_penalty）</strong>控制规则数量，使得规则集保持足够简洁以维持可解释性。λ是平衡保真度和可读性的超参数。</p>
+
+<div class="finding">
+<strong>与TRUSTEE的蒸馏差异</strong>：TRUSTEE的蒸馏是"用伪标签训练分类树"——简单直接。GEAD的蒸馏引入了<strong>低置信识别和增强</strong>——在教师-学生差异最大的区域进行针对性补偿。这使得GEAD的蒸馏在保真度上显著优于简单的单树提取。
+</div>
+</div>
+
+<!-- 4. Low-Confidence Processing -->
+<div class="card">
+<h2>4. 低置信处理：GEAD 的关键创新</h2>
+
+<p>低置信处理是GEAD区别于所有现有全局解释方法的<strong>核心创新</strong>。理解这一机制，是理解GEAD为什么能够取得高保真度和实际部署成功的钥匙。</p>
+
+<h3>4.1 问题：单棵回归树的固有限制</h3>
+<p>任何单棵回归树在逼近复杂深度神经网络的决策边界时，都会在某些区域出现较大的近似误差。这些区域通常是：</p>
+<ul>
+  <li><strong>决策边界附近</strong>：模型输出变化剧烈，树的分段常数近似难以精确匹配</li>
+  <li><strong>稀疏数据区域</strong>：训练数据覆盖不足，树在缺乏数据的情况下做了粗糙的外推</li>
+  <li><strong>高非线性区域</strong>：输入特征和异常分数之间存在复杂的非线性关系</li>
+</ul>
+
+<h3>4.2 GEAD的解决方案：三段式低置信处理</h3>
+
+<div class="flow">
+  <div class="step">① 识别<br>找到拟合差的区域</div>
+  <div class="arrow">→</div>
+  <div class="step">② 增强<br>在困难区域生成更多数据</div>
+  <div class="arrow">→</div>
+  <div class="step">③ 补偿<br>学习补充规则</div>
+</div>
+
+<div class="highlight-box">
+<strong>为什么这很重要？</strong>
+
+<p>假设一个DL异常检测模型在一个特定的流量模式区域（"高速率 + 非标准端口 + 加密payload"）有复杂的行为——部分被判定为异常（如DNS隧道），部分为正常（如VPN）。单棵回归树在这一区域可能简单地近似为"全部正常"或"全部异常"（因为树的分裂在这一区域无法提取有效的信息增益）。</p>
+
+<p>GEAD的低置信处理机制会：</p>
+<ol>
+  <li><strong>识别</strong>：发现这一区域中树和模型的一致性很低</li>
+  <li><strong>增强</strong>：在这一区域生成额外的合成样本（通过插值、扰动）</li>
+  <li><strong>补偿</strong>：学习专门的补充规则来区分"高速率+非标准端口+加密"下的不同子类型</li>
+</ol>
+
+<p>最终，GEAD的规则集包含了一条细致的区分规则（如"IF high_rate AND non_standard_port AND high_payload_entropy THEN high_anomaly_score (DNS tunnel型)"），而不仅仅是粗糙的概括。</p>
+</div>
+
+<h3>4.3 低置信处理的效果</h3>
+<p>实验表明，低置信处理显著提升了规则集的保真度：</p>
+<ul>
+  <li><strong>无低置信处理</strong>（仅根回归树）：保真度约75-82%（在某些复杂场景下）</li>
+  <li><strong>有低置信处理</strong>（根回归树 + 补充规则）：保真度提升至85-93%</li>
+</ul>
+<p>这表明低置信区域的针对性补偿对于实现高保真度至关重要——简单的一棵全局树无法充分捕捉黑盒模型在所有区域的决策逻辑。</p>
+</div>
+
+<!-- 5. Three Usage Modes -->
+<div class="card">
+<h2>5. 三种使用模式</h2>
+
+<p>GEAD不仅是规则提取工具，更是<strong>安全模型知识管理平台</strong>。它提供了三种互补的使用模式。</p>
+
+<h3>5.1 Mode 1: Knowledge Comparison（知识对比）</h3>
+<p><strong>模型规则 vs 专家知识</strong></p>
+
+<div class="grid-2">
+  <div>
+    <h4>目的</h4>
+    <p>发现模型"知道什么"和"不知道什么"——即模型中哪些规则与专家认知一致，哪些存在冲突或盲区。</p>
+  </div>
+  <div>
+    <h4>方法</h4>
+    <p>将GEAD提取的规则集与安全专家提供的已知模式（攻击签名、正常行为基线）进行<strong>逐条对比</strong>。</p>
+  </div>
+</div>
+
+<pre>
+# 知识对比示例
+
+GEAD Rule:  IF packet_rate > 200/s AND dst_port == 53
+            THEN anomaly_score HIGH (DDoS-like)
+Expert:     "DNS query flood 确实表现为高速率+53端口 — 规则合理 ✅"
+
+GEAD Rule:  IF src_ip_changes > 50/min AND dst_ip_fixed
+            THEN anomaly_score HIGH
+Expert:     "这可能是IP扫描行为，但如果是DHCP重分配则可能误报 — 需要条件 ⚠️"
+
+GEAD Rule:  IF avg_payload_len == 512 AND port == 445
+            THEN anomaly_score LOW
+Expert:     "SMB协议确实使用512字节块，但EternalBlue攻击也使用SMB — 规则过于宽松 ❌"
+</pre>
+
+<div class="finding">
+<strong>操作意义</strong>：知识对比使得安全团队可以建立一个"模型审计清单"：哪些模型判断可以信任，哪些需要人工复核，哪些不可接受——在这些基础上形成数据驱动的部署/不部署决策。
+</div>
+
+<h3>5.2 Mode 2: Inter-Model Discrepancy Identification（模型间差异识别）</h3>
+<p><strong>模型A规则 vs 模型B规则</strong></p>
+
+<p>当安全团队面临多个候选模型（如一个基于CNN的 + 一个基于LSTM的），GEAD可以提取两个模型的规则集进行<strong>系统性对比</strong>：</p>
+
+<table>
+  <tr><th>对比维度</th><th>Model A (CNN-based)</th><th>Model B (LSTM-based)</th><th>安全性分析</th></tr>
+  <tr>
+    <td>DDoS检测规则</td>
+    <td>基于包速率（合理）</td>
+    <td>基于包速率 + 源IP分散度（更精细）</td>
+    <td>Model B更全面</td>
+  </tr>
+  <tr>
+    <td>SSH暴力破解</td>
+    <td>基于失败登录次数（合理）</td>
+    <td>缺失相关规则</td>
+    <td>Model A更可靠</td>
+  </tr>
+  <tr>
+    <td>端口扫描</td>
+    <td>基于目标端口多样性</td>
+    <td>基于目标端口 + 扫描速率（误报更低）</td>
+    <td>Model B更优</td>
+  </tr>
+</table>
+
+<p>这种模型间对比为<strong>模型选择</strong>提供了可解释的依据——不是根据AUC/F1的数值差异做选择，而是根据"<strong>哪个模型的规则集在安全语义上更合理</strong>"。</p>
+
+<h3>5.3 Mode 3: Knowledge Fusion（知识融合）</h3>
+<p><strong>专家规则 + 模型规则 → 增强模型</strong></p>
+
+<p>这是GEAD最具前瞻性的使用模式。安全专家可以提供<strong>已知的检测规则</strong>（如特定攻击签名、协议异常模式），GEAD将这些专家规则与从DL模型蒸馏出的规则<strong>融合</strong>：</p>
+
+<pre>
+# 知识融合流程
+
+专家规则:  IF port == 3389 AND failed_login > 10 IN 5min
+          THEN anomaly = RDP brute force attack
+
+GEAD规则:  IF port == 3389 AND packet_rate > 500/s AND avg_pkt_size < 200
+          THEN anomaly = RDP scan/DDoS
+
+融合后:    模型现在同时拥有两种RDP异常的检测能力
+          — 既有专家对已知攻击的精确判断
+          — 又保留了模型从数据中自动发现的新模式
+
+增强结果:  检测覆盖率从82%提升至91%（在SCADA部署中验证）
+</pre>
+
+<div class="highlight-box">
+<strong>知识融合的深层含义</strong>：这是将安全专家的领域知识<strong>注入</strong>到ML模型中的一种方式——不是通过修改训练数据或模型架构，而是通过在规则层面融合。这本质上是一种<strong>模型增强</strong>（model enhancement）——利用可解释性来提升模型性能，而非仅仅解释现有模型。GEAD在此处从"解释工具"进化为"模型增强工具"。
+</div>
+</div>
+
+<!-- 6. Concrete Example -->
+<div class="card">
+<h2>6. 完整案例：网络入侵检测模型的全局规则提取与审计</h2>
+
+<div class="example-box">
+<h3>场景</h3>
+<p>一个企业安全团队部署了一个基于LSTM-Autoencoder的DL异常检测模型，用于监控公司内网的网络流量。模型每天处理约500万条流记录，在内部测试中达到94%的检测率。但在三个月的实际运行中，团队发现：
+  <ul>
+    <li>模型经常在周五下午产生大量告警（疑似误报模式）</li>
+    <li>某些已知的扫描攻击未被检测到</li>
+    <li>安全分析师无法理解模型的告警逻辑，导致告警疲劳</li>
+  </ul>
+</p>
+<p>团队决定使用GEAD进行全局规则审计。</p>
+
+<h3>Step 1: 运行GEAD</h3>
+<pre>
+# 使用GEAD提取全局规则
+gead = GEAD(teacher_model=lstm_autoencoder)
+rule_set = gead.extract_rules(
+    X_train,                    # 一个月的正常+攻击流量数据
+    low_conf_threshold=0.85,    # 低置信阈值
+    max_rules=50                # 最多50条规则（保持可读性）
+)
+</pre>
+
+<h3>Step 2: 阅读GEAD规则集（部分）</h3>
+<pre>
+Rule 7:  IF packet_rate > 100/s AND dst_port == 443
+                AND avg_payload_len < 50
+         THEN anomaly_score = HIGH (0.88-0.97) [TYPE: DDoS-like via HTTPS]
+
+Rule 12: IF flow_duration BETWEEN 1s-3s AND port == 22
+                AND bytes_sent < 500
+         THEN anomaly_score = MEDIUM (0.55-0.72) [TYPE: Possible SSH scan]
+
+Rule 23: IF src_port == 53 AND packet_count == 1
+                AND payload_entropy < 1.0
+         THEN anomaly_score = LOW (0.01-0.12) [TYPE: Normal DNS response]
+
+Rule 31: IF time_of_day BETWEEN 16:00-18:00    ← 下午4-6点
+                AND day_of_week == 5            ← 周五
+                AND packet_rate > 50/s
+         THEN anomaly_score = HIGH (0.78-0.92) [TYPE: High traffic volume]
+</pre>
+
+<h3>Step 3: 安全专家审计</h3>
+<table>
+  <tr><th>规则</th><th>审计结果</th><th>行动</th></tr>
+  <tr>
+    <td>Rule 7（DDoS via HTTPS）</td>
+    <td>合理：HTTPS小包洪泛确实是DDoS模式</td>
+    <td>✅ 信任此规则</td>
+  </tr>
+  <tr>
+    <td>Rule 12（SSH scan）</td>
+    <td>合理但过于宽泛：1-3秒短SSH连接也可能是合法的自动化运维</td>
+    <td>⚠️ 需要结合源IP白名单</td>
+  </tr>
+  <tr>
+    <td>Rule 23（Normal DNS）</td>
+    <td>基本合理，但DNS隧道也可能符合此特征</td>
+    <td>⚠️ 增加payload熵检查</td>
+  </tr>
+  <tr>
+    <td>Rule 31（周五下午高流量）</td>
+    <td><strong>不合理！</strong>这是正常的下班前数据备份、大文件传输行为</td>
+    <td>❌ 此规则应被抑制 → 解释了周五的"告警风暴"</td>
+  </tr>
+</table>
+
+<h3>Step 4: 基于GEAD分析的行动</h3>
+<ol>
+  <li><strong>抑制Rule 31</strong>——周五下午的告警风暴问题解决了。团队理解了模型将正常的高峰期流量误判为异常的原因。</li>
+  <li><strong>增强Rule 12</strong>——加入已认证IP白名单，降低运维脚本导致的误报。</li>
+  <li><strong>补充缺失覆盖</strong>——GEAD分析发现模型没有任何规则覆盖"慢速端口扫描"（slow scan），因为训练数据中此类攻击样本不足。团队通过知识融合（Mode 3）手动添加了慢速扫描规则。</li>
+</ol>
+
+<div class="finding">
+<strong>案例结论</strong>：通过GEAD的全局规则审计，团队不仅发现了模型的具体缺陷（Rule 31导致的告警风暴），更重要的是<strong>理解了模型为什么会产生这些问题</strong>——因为模型将时间-流量相关性（周五下午流量高）误学为异常特征。这为模型的改进提供了精确的指导，而非简单的"提高F1"这样的模糊目标。
+</div>
+</div>
+</div>
+
+<!-- 7. Experimental Results -->
+<div class="card">
+<h2>7. 实验评估与部署验证</h2>
+
+<h3>7.1 多应用验证</h3>
+
+<table>
+  <tr><th>应用场景</th><th>数据来源</th><th>保真度</th><th>规则数量</th><th>专家可理解性</th></tr>
+  <tr>
+    <td>网络入侵检测</td>
+    <td>CIC-IDS2017, UNSW-NB15</td>
+    <td>89-94%</td>
+    <td>25-45 条</td>
+    <td>高：端口、速率、包大小均为网络分析师熟知特征</td>
+  </tr>
+  <tr>
+    <td>系统日志异常检测</td>
+    <td>HDFS, BGL 日志数据集</td>
+    <td>87-92%</td>
+    <td>30-50 条</td>
+    <td>中高：需要日志解析知识</td>
+  </tr>
+  <tr>
+    <td>SCADA ICS安全</td>
+    <td>真实SCADA环境数据（State Grid）</td>
+    <td>85-91%</td>
+    <td>20-35 条</td>
+    <td>高：工业控制特征（寄存器值、指令频率）可直接理解</td>
+  </tr>
+</table>
+
+<h3>7.2 提炼维度分析</h3>
+
+<table>
+  <tr><th>维度</th><th>结果</th></tr>
+  <tr>
+    <td><strong>保真度 (Fidelity)</strong></td>
+    <td>规则集与DL模型高度一致。低置信增强对保真度提升显著——在复杂场景（如多步攻击检测）中，无增强的保真度仅75-82%，增强后提升至85-94%。</td>
+  </tr>
+  <tr>
+    <td><strong>可读性 (Readability)</strong></td>
+    <td>可控的规则数量（通常<50条），离散化的阈值描述。安全专家可以在<strong>15-30分钟内完成全部规则的初步审计</strong>。</td>
+  </tr>
+  <tr>
+    <td><strong>泛化性 (Generalization)</strong></td>
+    <td>在3个不同类型的应用（网络、日志、SCADA）上验证了方法的有效性。规则格式统一，但语义适应各自领域。</td>
+  </tr>
+  <tr>
+    <td><strong>SCADA真实部署</strong></td>
+    <td>在国网上海的真实SCADA工控环境中成功部署验证——这是<strong>可解释性方法在工业控制安全中的罕见实践</strong>。GEAD规则帮助团队发现了一个此前未知的控制器配置异常模式。</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+<strong>Distinguished Artifact Award 的意义</strong>：GEAD获得了CCS历史上<strong>首个</strong>Distinguished Artifact Award。这个奖项评估的不是论文的理论贡献，而是代码和数据artifact的质量、可用性和可复现性。GEAD获奖意味着评审者实际运行了GEAD，验证了其在真实场景中的有效性——这在ML for Security领域是一个强烈的信号，表明可解释性研究正从概念验证走向可操作的工程工具。
+</div>
+</div>
+
+<!-- 8. Comparison -->
+<div class="card">
+<h2>8. 与 DeepAID 和 TRUSTEE 的系统比较</h2>
+
+<p>GEAD、DeepAID和TRUSTEE代表了可解释性在网络安全领域的三个连续发展阶段：</p>
+
+<table>
+  <tr>
+    <th>维度</th>
+    <th>DeepAID (CCS 2021)</th>
+    <th>TRUSTEE (CCS 2022)</th>
+    <th>GEAD (CCS 2024)</th>
+  </tr>
+  <tr>
+    <td><strong>解释范围</strong></td>
+    <td>局部 (per-sample)</td>
+    <td>全局 (global)</td>
+    <td>全局 (global)</td>
+  </tr>
+  <tr>
+    <td><strong>输出形式</strong></td>
+    <td>参考样本 + 特征差异向量</td>
+    <td>决策树 + Trust Report</td>
+    <td><strong>IF-THEN规则集 + 异常分数</strong></td>
+  </tr>
+  <tr>
+    <td><strong>模型类型</strong></td>
+    <td>无监督异常检测</td>
+    <td>分类模型（通用）</td>
+    <td>异常检测（回归）</td>
+  </tr>
+  <tr>
+    <td><strong>低置信处理</strong></td>
+    <td>N/A（局部方法无此需求）</td>
+    <td>❌ 无（单树提取）</td>
+    <td><strong>✅ 识别+增强+补偿三部曲</strong></td>
+  </tr>
+  <tr>
+    <td><strong>知识对比</strong></td>
+    <td>❌ 无</td>
+    <td>信任报告（部分）</td>
+    <td><strong>✅ 系统性模型vs专家对比</strong></td>
+  </tr>
+  <tr>
+    <td><strong>模型间差异识别</strong></td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td><strong>✅ 模型A vs 模型B规则对比</strong></td>
+  </tr>
+  <tr>
+    <td><strong>知识融合</strong></td>
+    <td>❌ 无</td>
+    <td>❌ 无</td>
+    <td><strong>✅ 专家规则+模型规则→增强</strong></td>
+  </tr>
+  <tr>
+    <td><strong>真实工业部署</strong></td>
+    <td>实验室验证</td>
+    <td>实验室验证</td>
+    <td><strong>✅ 真实SCADA部署验证</strong></td>
+  </tr>
+</table>
+
+<div class="finding">
+<strong>演化路径</strong>：DeepAID（2021）→ TRUSTEE（2022）→ GEAD（2024）代表了一条清晰的技术和理念演进路径。从局部的逐样本解释，到全局的信任评估（TRUSTEE），再到全局的知识管理和模型增强（GEAD），可解释性从"诊断工具"演化为"安全运维平台"的核心组件。
+</div>
+</div>
+
+<!-- 9. Limitations -->
+<div class="card">
+<h2>9. 局限性与未来方向</h2>
+
+<div class="critique-box">
+<h3>9.1 规则复杂度的天花板</h3>
+<p>如果原模型的决策边界极其复杂（如多层非线性变换形成的扭曲决策面），GEAD的规则集可能仍然会<strong>比较大</strong>（50+ 条规则），超出"人类可读"的舒适范围。规则集大本身不是问题，但当规则之间的交互变得复杂（如规则之间存在条件依赖），人类读者可能难以追踪完整的推理链。这是所有全局解释方法共有的挑战——复杂模型本质上可能需要复杂解释。</p>
+
+<h3>9.2 离散化可能造成信息损失</h3>
+<p>将连续阈值（如"feature_3 > 0.734"）转化为区间描述（如"high packet rate"）虽然提升了可读性，但<strong>区间划分本身可能引入边界误差</strong>。在边界附近（如"packet_rate = 99/s" vs "packet_rate = 101/s"），微小的数值差异可能导向完全不同的规则触发。离散化不能完全消除这种"硬边界"问题。</p>
+
+<h3>9.3 训练数据质量的依赖</h3>
+<p>规则提取的质量与训练数据质量高度相关。如果训练数据中缺少某些攻击类型的样本，GEAD无法从模型中蒸馏出相关的检测规则——因为模型本身没有学到这些规则。数据缺陷通过蒸馏传递到规则集。GEAD的知识融合模式（添加专家规则）部分缓解了这个问题，但本质上仍受限于"模型学到了什么"。</p>
+
+<h3>9.4 非因果性</h3>
+<p>GEAD提取的规则描述的是<strong>相关性而非因果性</strong>——"IF packet_rate > 100/s THEN anomaly_score HIGH"只是描述了统计关联，并不解释"高速率为什么导致异常"。对于安全分析师来说，理解因果链条（如"高速率→带宽耗尽→服务不可用→异常"）比单纯的关联规则更有价值。GEAD的当前版本不提供因果推理能力。</p>
+
+<h3>9.5 时间依赖性的建模局限</h3>
+<p>GEAD基于树结构的规则天然适合描述<strong>静态模式</strong>（"在这个条件组合下，异常分数是多少"），但在处理复杂的<strong>时间依赖模式</strong>（如"异常分数在最近30分钟内持续上升"、"事件A发生5分钟后通常跟随事件B"）时存在表达能力的天花板。对于具有强时间序列特性的异常检测模型（如基于LSTM的模型），GEAD的规则可能丢失重要的动态信息。</p>
+</div>
+
+<div class="finding">
+<strong>前景展望</strong>：尽管存在这些局限，GEAD代表了当前全局可解释性研究的最高水平——不仅在方法创新上（低置信处理三部曲），更在实际部署验证上（CCS首个Distinguished Artifact Award、真实SCADA环境验证）。它的三种使用模式（知识对比、模型差异识别、知识融合）为可解释性研究设定了新的范式——解释不仅是"理解模型"，更是"增强模型"和"管理模型"。这一范式在后续的Agua (SIGCOMM 2025) 中得到了进一步发展——从特征级规则进化到概念级解释。
+</div>
+</div>
+
+<!-- Final card -->
+<div class="card">
+<h2>总结</h2>
+
+<p>GEAD的标题"Rules Refine the Riddle"（规则澄清谜题）精准地概括了论文的核心贡献：将DL异常检测模型这个"谜题"（riddle）通过规则（rules）来"澄清"（refine）——将不可解释的黑盒转化为可审计、可验证、可增强的规则集。</p>
+
+<p>论文的四层贡献：</p>
+<ol>
+  <li><strong>方法层</strong>：提出了GEAD六步框架，其中低置信识别-增强-补偿三部曲是核心创新，确保了规则集的高保真度。</li>
+  <li><strong>模式层</strong>：定义了三种使用模式（知识对比、模型间差异识别、知识融合），将可解释性从"诊断"扩展到"模型管理"和"模型增强"。</li>
+  <li><strong>验证层</strong>：在三个不同类型的应用中验证了方法有效性，包括在真实SCADA环境中的部署——这在可解释性研究中极为罕见。</li>
+  <li><strong>生态层</strong>：开源代码获得CCS首个Distinguished Artifact Award，为社区提供了可操作的、可复现的全局解释工具。</li>
+</ol>
+
+<p>在从DeepAID（局部）到GEAD（全局）到Agua（概念级）的演化路径中，GEAD完成了从"为什么这个样本"到"模型整体规则"的范式跳跃。而Agua在此基础上进一步将粒度从"特征级规则"提升到"概念级解释"——用更接近人类思维方式的语义概念来替代低层特征，这代表了可解释性研究的下一个前沿。</p>
+</div>
+
+</div>
+</body>
+</html>

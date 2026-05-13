@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BERT Probing (ACL 2019) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#8e44ad;">BERTology</span>
+  <h1>What Does BERT Learn about the Structure of Language?</h1>
+  <div class="subtitle">通过逐层探测（Layer-wise Probing）揭示 BERT 内部表征的层级化语言结构：表层 → 句法 → 语义，类似经典 NLP pipeline 的自发涌现</div>
+  <div class="meta">
+    <span>Ganesh Jawahar, Benoit Sagot, Djame Seddah</span>
+    <span>Inria, France</span>
+    <span>ACL 2019</span>
+    <span>引用 1,400+</span>
+  </div>
+</div>
+
+<!-- 1. MOTIVATION -->
+<div class="card">
+  <h2>1. 动机：BERT 学到了什么？</h2>
+
+  <p>2018 年末 BERT 发布后，NLP 社区面临一个核心困惑：<strong>BERT 在几乎所有基准上碾压式地提升了 SOTA，但我们不知道它内部学到了什么</strong>。这个问题不仅是学术好奇心——如果我们不理解 BERT 的知识表征方式，就无法诊断其错误、改进其架构、或信任其在高风险场景中的预测。</p>
+
+  <p>当时主流的两种解释途径各有致命缺陷：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>Attention 权重可视化：</strong>Jain &amp; Wallace (2019) 证明了 attention weights 与特征重要性之间的相关性很弱。高的 attention 权重不一定意味着该 token 对预测贡献大——attention 可能在做其他事情（如语法一致性、指代消解等结构的计算）。<strong>Attention ≠ Explanation。</strong></li>
+    <li><strong>基于梯度的显著性图：</strong>只显示哪些输入 token 对最终输出影响大，但不揭示内部层的知识组织方式。显著性图是"输入-输出"的端到端归因，而无法回答"模型在第 5 层学到了句法结构吗？"这样的结构性问题。</li>
+  </ul>
+
+  <p>Jawahar 等人的核心洞察：与其试图从外部观察 BERT 的行为，不如<strong>直接测试 BERT 内部每一层的表征空间编码了什么语言知识</strong>。这就是 probing（探测）方法的出发点。</p>
+
+  <div class="finding">
+    <strong>核心问题转换：</strong>从 "这个 token 对预测有多重要？"（归因问题）转变为 "这一层的表征空间中是否线性可分地编码了某个语言学属性？"（表征分析问题）。前者是解释预测，后者是理解模型。
+  </div>
+</div>
+
+<!-- 2. PROBING METHODOLOGY -->
+<div class="card">
+  <h2>2. 探测方法论：用线性分类器"审问"每一层</h2>
+
+  <h3>2.1 核心操作流程</h3>
+  <div class="flow">
+    <span class="step">Input<br>Sentence</span>
+    <span class="arrow">→</span>
+    <span class="step">BERT<br>Forward</span>
+    <span class="arrow">→</span>
+    <span class="step">Extract Layer k<br>Hidden States</span>
+    <span class="arrow">→</span>
+    <span class="step">Train Linear<br>Classifier</span>
+    <span class="arrow">→</span>
+    <span class="step">Predict Linguistic<br>Property</span>
+    <span class="arrow">→</span>
+    <span class="step">Probing<br>Accuracy</span>
+  </div>
+
+  <p>具体步骤：</p>
+  <ol style="margin-left: 24px; margin-bottom: 12px;">
+    <li>选取一个语言学标注数据集（如 Penn Treebank 的句法树、特定时态标注等）</li>
+    <li>将每个句子输入 BERT（冻结参数，不做 fine-tuning），提取每一层（1-12 层）的隐藏状态向量</li>
+    <li>对于每个句子，选择特定的 token 位点的隐藏状态（如 [CLS] 位置 或 动词位置）</li>
+    <li>在这些隐藏状态上训练一个<strong>线性分类器</strong>（逻辑回归或线性 SVM），预测目标语言属性（如时态、句子长度、句法树深度等）</li>
+    <li>如果线性分类器的准确率高 → 该层的表征空间将目标属性<strong>线性可分地编码</strong>了 → 该层"知道"这个语言属性</li>
+  </ol>
+
+  <h3>2.2 为什么必须是线性分类器？</h3>
+  <p>这是 probing 方法论中最关键的约束，也是经常被误解的一点：</p>
+
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>如果使用非线性分类器（如 MLP）：</strong>分类器本身可以学习复杂的非线性变换，将原本不可分的数据变得可分。此时，高准确率可能反映的是<strong>分类器的学习能力</strong>，而非<strong>BERT 表征的质量</strong>。</li>
+    <li><strong>如果使用线性分类器：</strong>分类器只能画一个超平面。如果线性可分的准确率高，说明 BERT 的表征已经将这些语言属性<strong>组织成了线性可分离的模式</strong>，这直接反映了表征空间的结构质量。</li>
+    <li><strong>直觉：</strong>线性探针就像一个"认知测试"——它衡量 BERT 是否将知识编码得如此清晰，以至于只需要一个简单的线性读出（readout）就能提取。这类似于测试人脑是否理解了某个概念：如果不需要复杂推理就能直接回答，说明概念已经被深度内化。</li>
+  </ul>
+
+  <h3>2.3 与 Fine-tuning 的区别</h3>
+  <p>BEP（BERT + probing）与传统的 fine-tuning 范式根本不同：</p>
+  <table>
+    <tr><th></th><th>Fine-tuning</th><th>Probing</th></tr>
+    <tr><td>BERT 参数</td><td>更新（梯度反传）</td><td>冻结（只读）</td></tr>
+    <tr><td>分类器</td><td>通常为非线性 MLP head</td><td>线性分类器</td></tr>
+    <tr><td>目的</td><td>最大化下游任务性能</td><td>理解 BERT 内部知识结构</td></tr>
+    <tr><td>回答的问题</td><td>"BERT 能学会这个任务吗？"</td><td>"BERT 已经知道这个属性了吗？在哪一层？"</td></tr>
+  </table>
+</div>
+
+<!-- 3. 10 PROBING TASKS -->
+<div class="card">
+  <h2>3. 十项探测任务：三层语言结构的全面测试</h2>
+
+  <p>论文设计了 10 个探测任务，系统地覆盖语言学结构的三个层次：表层、句法、语义。</p>
+
+  <h3>3.1 表层特征（Surface Features）</h3>
+  <table>
+    <tr><th>任务</th><th>缩写</th><th>预测目标</th><th>示例</th><th>所需能力</th></tr>
+    <tr>
+      <td><strong>句子长度</strong></td><td>SentLen</td><td>句子中的 token 数量（分类：短/中/长）</td><td>"The cat sat." → SentLen=3 (short)</td>
+      <td>序列边界识别，基本计数</td>
+    </tr>
+    <tr>
+      <td><strong>词存在性</strong></td><td>WC</td><td>特定词是否出现在句子中</td><td>"The cat sat on the mat" → WC("mat")=Yes</td>
+      <td>词汇级记忆和检测</td>
+    </tr>
+  </table>
+
+  <h3>3.2 句法特征（Syntactic Features）</h3>
+  <table>
+    <tr><th>任务</th><th>缩写</th><th>预测目标</th><th>示例</th><th>所需能力</th></tr>
+    <tr>
+      <td><strong>词序扰动检测</strong></td><td>BShift</td><td>判断句子中是否交换了相邻词</td><td>"cat The sat" → BShift=Yes（"The" 和 "cat" 交换）</td>
+      <td>词序敏感性</td>
+    </tr>
+    <tr>
+      <td><strong>句法树深度</strong></td><td>TreeDepth</td><td>预测句子的解析树的最大深度</td><td>"The cat sat" → depth=4 (S→NP+VP→Det+N+VP→V)</td>
+      <td>句子结构的层级感</td>
+    </tr>
+    <tr>
+      <td><strong>顶层句法成分</strong></td><td>TopConst</td><td>预测句法树顶层的成分序列类型</td><td>"The cat sat" → S(NP VP .)</td>
+      <td>句子整体结构类型识别</td>
+    </tr>
+  </table>
+
+  <h3>3.3 语义特征（Semantic Features）</h3>
+  <table>
+    <tr><th>任务</th><th>缩写</th><th>预测目标</th><th>示例</th><th>所需能力</th></tr>
+    <tr>
+      <td><strong>时态</strong></td><td>Tense</td><td>预测句子的时态（过去/现在/将来）</td><td>"The cat sat" → Past</td>
+      <td>时间语义理解</td>
+    </tr>
+    <tr>
+      <td><strong>主语数</strong></td><td>SubjNum</td><td>预测主语是单数还是复数</td><td>"The cats sit" → Plural</td>
+      <td>语法-语义接口（主谓一致）</td>
+    </tr>
+    <tr>
+      <td><strong>语义替换检测</strong></td><td>SOMO</td><td>判断句子中的名词/动词是否被随机替换</td><td>"The cat #RAND on the mat" → SOMO=Yes</td>
+      <td>语义合理性判断</td>
+    </tr>
+    <tr>
+      <td><strong>并列结构反转检测</strong></td><td>CoordInv</td><td>判断并列短语的顺序是否被颠倒</td><td>"Coffee and tea" vs "Tea and coffee" → CoordInv=Yes</td>
+      <td>语序-语义接口（冻结顺序的感知）</td>
+    </tr>
+  </table>
+
+  <div class="highlight-box">
+    <strong>任务设计的精髓：</strong>这些任务覆盖了从"几乎不需要理解"（仅计数/词检测）到"需要深层语义理解"（判断替换是否不合理）的完整谱系。通过比较不同层在这些任务上的表现，可以直接画出 BERT 内部知识加工的"生产线"。
+  </div>
+</div>
+
+<!-- 4. THE KEY FINDING -->
+<div class="card">
+  <h2>4. 核心发现：层级化编码——从表层到语义的涌现</h2>
+
+  <p>这篇论文最重要、被引用最多的发现是：<strong>BERT 的 12 层 Transformer 自然地形成了一条"语言加工流水线"，类似传统 NLP pipeline（分词 → 词性标注 → 句法解析 → 语义角色标注 → 指代消解），但完全通过自监督预训练自发涌现，无需显式的语言学监督。</strong></p>
+
+  <h3>4.1 三层分布的实证数据</h3>
+
+  <table>
+    <tr><th>语言学层次</th><th>最佳探测层范围</th><th>代表任务</th><th>最高探测准确率</th></tr>
+    <tr>
+      <td><strong>表层 (Surface)</strong></td>
+      <td>Layer 1-3</td>
+      <td>SentLen, WC</td>
+      <td>SentLen: ~97% (Layer 2)<br>WC: ~95% (Layer 2)</td>
+    </tr>
+    <tr>
+      <td><strong>句法 (Syntactic)</strong></td>
+      <td>Layer 4-8</td>
+      <td>TreeDepth, TopConst, BShift</td>
+      <td>TreeDepth: ~41% (Layer 7)<br>TopConst: ~86% (Layer 6)<br>BShift: ~85% (Layer 8)</td>
+    </tr>
+    <tr>
+      <td><strong>语义 (Semantic)</strong></td>
+      <td>Layer 9-12</td>
+      <td>Tense, SubjNum, SOMO, CoordInv</td>
+      <td>Tense: ~92% (Layer 10)<br>SubjNum: ~85% (Layer 11)<br>SOMO: ~70% (Layer 12)</td>
+    </tr>
+  </table>
+
+  <h3>4.2 为什么会出现这种层级结构？</h3>
+  <p>这一现象并非设计出来的，而是 <strong>Transformer 架构 + MLM 预训练目标的 emergent property</strong>：</p>
+
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>低层 (1-3)：局部模式编码。</strong>这些层最接近输入 token 嵌入。self-attention 的感受野较小，主要捕获相邻 token 的共现模式（n-gram）。这自然地支持了词存在性检测（WC）和序列长度感知（SentLen）。可以类比为 CNN 的低层检测边缘和纹理。</li>
+    <li><strong>中层 (4-8)：组合为短语结构。</strong>经过 3-4 层的 self-attention 后，信息已经跨多个 token 混合。这些层的 attention 开始聚焦于句法关系——主语和谓语之间、动词和宾语之间。这是短语结构（phrase structure）的涌现层，使得 TreeDepth 和 TopConst 线性可分。</li>
+    <li><strong>高层 (9-12)：抽象为语义。</strong>信息经过 8+ 层处理后，单个 token 的表示已经编码了整个句子的上下文集约。这使得句级属性如时态（Tense）、语义合理性（SOMO）可以被线性读出。</li>
+  </ul>
+
+  <h3>4.3 具体例句的逐层"思想追踪"</h3>
+
+  <div class="example-box">
+    <strong>例句：</strong>"The cat sat on the mat."
+  </div>
+
+  <p>我们追踪 BERT 对这句话的内部加工过程：</p>
+
+  <table>
+    <tr><th>层</th><th>该层编码的知识</th><th>可被探测到的属性</th><th>类比传统 NLP</th></tr>
+    <tr>
+      <td><strong>Layer 1</strong></td>
+      <td>Token "The" 在位置 0，"cat" 在位置 1，"sat" 在位置 2... 基本的位置和词汇身份信息</td>
+      <td>SentLen=6（句子有 6 个 token）</td>
+      <td>Tokenizer + Counter</td>
+    </tr>
+    <tr>
+      <td><strong>Layer 2</strong></td>
+      <td>检测到 "The" 和 "cat" 频繁共现，形成轻微的局部绑定</td>
+      <td>WC("cat")=Yes（句子中有 "cat"）</td>
+      <td>词汇检测</td>
+    </tr>
+    <tr>
+      <td><strong>Layer 4</strong></td>
+      <td>注意力开始聚类："The"+"cat" 被识别为一个单元；"on"+"the"+"mat" 作为介词短语浮现</td>
+      <td>TopConst 开始可被探测（S 结构编码中）</td>
+      <td>Chunker (组块分析)</td>
+    </tr>
+    <tr>
+      <td><strong>Layer 6</strong></td>
+      <td>完整的短语结构清晰形成：NP("The cat") + VP("sat") + PP("on the mat")</td>
+      <td>TreeDepth≈4 可被准确探测；TopConst 准确率高峰</td>
+      <td>Constituency Parser (短语结构解析器)</td>
+    </tr>
+    <tr>
+      <td><strong>Layer 8</strong></td>
+      <td>开始编码句法依赖关系："sat" 是主谓词，"cat" 是其主语，"mat" 是 PP 的宾语</td>
+      <td>BShift 检测准确率高峰（词序敏感性最强）</td>
+      <td>Dependency Parser (依存解析器)</td>
+    </tr>
+    <tr>
+      <td><strong>Layer 10</strong></td>
+      <td>抽象出时态信息："sat" 是过去时；主谓一致："cat" (单数) + "sat" (单数)</td>
+      <td>Tense=Past (时态准确率 ~92%)；SubjNum=Singular</td>
+      <td>Semantic Role Labeler + Tense detector</td>
+    </tr>
+    <tr>
+      <td><strong>Layer 12</strong></td>
+      <td>将整个句子的语义编码为统一表示（feed into [CLS] for final task）</td>
+      <td>SOMO: 如果 "cat" 被替换为 "#RAND"，该层可以检测到语义异常</td>
+      <td>Semantic coherence detector</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>关键直觉：</strong>BERT 不是"在某一个魔法层突然理解了语言"，而是通过 12 层的逐渐抽象，将局部 token 信息逐步转化为全局语义。这与人类阅读的认知过程有惊人的结构相似性：我们也是先识别词，再组合成短语，再理解句法，最后把握整体语义。区别在于，BERT 通过自监督预训练自发地发现了这种分层加工策略。
+  </div>
+</div>
+
+<!-- 5. ADDITIONAL FINDINGS -->
+<div class="card">
+  <h2>5. 补充发现：从短语聚类到注意力头分析</h2>
+
+  <h3>5.1 短语级结构的聚类证据</h3>
+  <p>论文通过 t-SNE 降维 + k-means 聚类 + NMI（归一化互信息）评估，发现 <strong>BERT 的低层和中层表示已经隐含了短语级别的结构分组</strong>。具体来说：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>对 Layer 1-6 的 [CLS] 表征做 t-SNE 可视化，同类型的短语（如所有 NP 主语）在向量空间中自然聚集</li>
+    <li>聚类 NMI 在 Layer 4-6 达到峰值，这与 TopConst 和 TreeDepth 的探测高峰一致</li>
+    <li>这表明 <strong>短语结构不是 BERT "为了预测而临时构造的"，而是其内部表征的稳定组织原则</strong></li>
+  </ul>
+
+  <h3>5.2 主谓一致的近距离 vs 远距离</h3>
+  <p>论文专门测试了 SubjNum 任务中，主语和谓语之间的距离对探测准确率的影响：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>近距离一致</strong>（如 "The cat sits" — 主语和动词紧邻）：在 Layer 4-6 就可以被准确探测</li>
+    <li><strong>远距离一致</strong>（如 "The cat that chased the mice sits" — 主语和动词之间有 5 个 token 的干扰）：需要等到 Layer 8-10 才能被准确探测</li>
+  </ul>
+  <p>这一发现直观地印证了 BERT 的层次化加工：<strong>近距离依赖在较低层解决，长距离依赖需要更深的信息传播</strong>。这与 self-attention 的信息混合特性一致——低层 attention 的"有效感受野"较小，需要多层叠加才能跨越长距离。</p>
+
+  <h3>5.3 特定注意力头可以直接诱导依存树</h3>
+  <p>论文发现了几个"功能特化"的注意力头：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>Layer 2, Head 11</strong>：该注意力头的行为与依存解析（dependency parsing）高度相关。将其 attention 矩阵通过简单的 argmax 选择每个 token 的"父节点"（即最关注的 token），得到的无标注依存树与黄金标准的 UAS（无标注依存准确率）达到 0.70+。</li>
+    <li>这一发现说明 <strong>BERT 不仅"知道"句法结构，而且其内部的某些注意力头特异性地执行了类似依存解析的操作</strong>——即使没有任何句法标注的监督信号。</li>
+  </ul>
+
+  <div class="highlight-box">
+    <strong>"BERT 是一个未受 NLP pipeline 训练但自发学会了 NLP pipeline"这一图景</strong>——它的底层自发地学会了类似分词和词性标注的功能，中层学会了短语结构解析，高层学会了语义角色标注。而某些注意力头则对应了特定的语言学功能。这种 emergent modularity（涌现的模块化）是 BERT 最令人兴奋也最令人困惑的特性。
+  </div>
+</div>
+
+<!-- 6. LIMITATIONS -->
+<div class="card">
+  <h2>6. 局限性与方法论警示</h2>
+
+  <h3>6.1 "线性可分离 ≠ 被模型使用"（相关 ≠ 因果）</h3>
+  <p>这是 probing 方法论最根本的限制。一个语言属性在线性探测中表现出高准确率，只说明 BERT 的隐藏状态<strong>包含</strong>了这个信息（编码了），但不意味着 BERT <strong>使用</strong>了这个信息来做决策。就像一个人脑中存储着许多知识，但在做某个具体决策时可能只使用了其中一小部分。</p>
+  <p>后续工作通过 <strong>amnesic probing</strong>（遗忘探测）和 <strong>causal probing</strong>（因果探测）尝试解决此问题——通过干预/移除某些表征维度并观察模型行为变化，来推断因果使用关系。</p>
+
+  <h3>6.2 探测任务是"浅层"语言属性</h3>
+  <p>论文的 10 个任务聚焦于句子级别的表层、句法和浅层语义属性。它们不能探测：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>深层语用/推理：</strong>反讽、讽刺、隐含意义、言外之意</li>
+    <li><strong>世界知识：</strong>事实性知识如"巴黎是法国首都"是否被编码</li>
+    <li><strong>篇章级结构：</strong>跨句子的指代消解、篇章连贯性、叙事结构</li>
+    <li><strong>常识推理：</strong>"如果下雨，地面会湿"这类因果知识</li>
+  </ul>
+  <p>这些更高级的能力可能需要不同的探测任务设计——或者可能根本不在 BERT 的静态表征中，而是在 fine-tuning 或者更大规模的模型中才出现。</p>
+
+  <h3>6.3 仅分析了 BERT-base</h3>
+  <p>论文只在 BERT-base（12 层，768 维）上进行了实验。以下问题留待后续工作：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>BERT-large（24 层）是否表现出类似的层次化？层级结构是否会"展开"到更多的层？</li>
+    <li>不同预训练目标（RoBERTa 的 dynamic masking、ALBERT 的跨层参数共享、ELECTRA 的判别器目标）是否改变层次化模式？</li>
+    <li>多语言 BERT（mBERT）的层次化结构跨语言是否一致？</li>
+  </ul>
+
+  <h3>6.4 语言知识的来源不明确</h3>
+  <p>探测实验告诉我们 BERT "学会了"句法/语义知识，但无法区分这些知识来自哪里：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li>来自预训练数据的<strong>统计模式</strong>（Wikipedia + BookCorpus 中的分布规律）</li>
+    <li>来自 Transformer 架构的<strong>归纳偏置</strong>（self-attention 的结构性倾向）</li>
+    <li>还是两者的<strong>交互效应</strong></li>
+  </ul>
+  <p>这一问题对构建更好的预训练模型有直接影响——如果我们知道句法结构的来源，就可以有针对性地改进架构或训练数据。</p>
+
+  <div class="critique-box">
+    <strong>Probing 的方法论困境：</strong>如果你给一个足够强大的探测分类器（如深层 MLP），它可能在随机噪声中学习到模式。线性探针缓解了这一问题，但并未完全解决——因为线性分类器也有一定的拟合能力。后续的"control task"方法（Hewitt &amp; Liang, 2019）通过引入语言学上无意义的控制任务来估计探针本身的"虚假学习能力"，是这一方法论的重要改进。
+  </div>
+</div>
+
+<!-- 7. RELEVANCE TO TRAFFIC -->
+<div class="card">
+  <h2>7. 对流量预训练模型的启示</h2>
+
+  <p>BERT Probing 的方法论可以直接移植到网络安全领域的流量 Transformer 模型（如 ET-BERT），用于回答一个关键问题：<strong>流量预训练模型内部是否也形成了层次化的协议知识结构？</strong></p>
+
+  <h3>7.1 流量领域的三层结构假设</h3>
+  <p>对应于 NLP 的表层→句法→语义三层次，网络流量可能有类似的分层：</p>
+
+  <table>
+    <tr><th>语言学层次</th><th>对应流量层次</th><th>具体探测任务设计</th><th>预期编码层</th></tr>
+    <tr>
+      <td><strong>表层</strong> (Surface)</td>
+      <td><strong>包级统计特征</strong></td>
+      <td>探测：包长度分类（短/中/长）、端口号识别、协议类型（TCP/UDP）</td>
+      <td>Layer 1-3</td>
+    </tr>
+    <tr>
+      <td><strong>句法</strong> (Syntactic)</td>
+      <td><strong>协议状态机/流序列模式</strong></td>
+      <td>探测：TCP 状态（SYN/SYN-ACK/ACK/FIN 序列）、TLS 握手阶段（ClientHello/ServerHello 等）、HTTP 请求-响应配对</td>
+      <td>Layer 4-8</td>
+    </tr>
+    <tr>
+      <td><strong>语义</strong> (Semantic)</td>
+      <td><strong>应用行为语义</strong></td>
+      <td>探测：流量是否属于视频流/网页浏览/文件传输、是否为恶意 C2 心跳流量、是否是 DDoS 攻击模式</td>
+      <td>Layer 9-12</td>
+    </tr>
+  </table>
+
+  <h3>7.2 探测实验设计（可直接执行的方案）</h3>
+  <ol style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>标注数据采集：</strong>使用标注好的网络流量数据集（如 CIC-IDS-2017、USTC-TFC），为每个流量序列标注包级属性（包长、端口）、流级属性（协议状态、TLS 阶段）和语义标签（正常/攻击类型）</li>
+    <li><strong>冻结 ET-BERT：</strong>不对 ET-BERT 进行 fine-tuning，仅提取每一层对每个 BURST token 的隐藏状态</li>
+    <li><strong>线性探针训练：</strong>对每个任务训练线性分类器，比较不同层的准确率</li>
+    <li><strong>分析发现：</strong>如果包级特征在低层表现好、协议状态在中层、攻击语义在高层 → ET-BERT 形成了类似 BERT 的层次化协议知识结构</li>
+  </ol>
+
+  <h3>7.3 安全应用价值</h3>
+  <p>如果证实了流量 Transformer 的层次化结构，其应用价值包括：</p>
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>模型诊断：</strong>如果某个层级的探针准确率异常低（如语义层探测不准），说明模型的质量问题出在高层抽象能力，可以针对性地改进预训练策略</li>
+    <li><strong>迁移学习指导：</strong>对于下游任务（如 DDoS 检测 vs. 恶意软件 C2 检测），可以根据所需的知识层次选择不同的层进行 fine-tuning——低层任务从低层初始化，高层任务从高层初始化</li>
+    <li><strong>对抗鲁棒性分析：</strong>如果对抗样本主要破坏了中层表征（协议状态的编码），而低层和高层相对稳定，可以针对受影响的层设计防御机制</li>
+  </ul>
+
+  <div class="finding">
+    <strong>跨领域迁移的核心信念：</strong>BERT Probing 最深的启示是——<strong>深度 Transformer 在序列数据上的层次化表征可能是一个普适现象</strong>，而非 NLP 特有的语言学 artifact。网络流量、程序执行轨迹、系统调用序列等序列数据，都可能表现出类似的"从局部模式到全局语义"的层级化表征结构。验证这一假设将是将 NLP 预训练智慧迁移到网络安全领域的基础性工作。
+  </div>
+</div>
+
+<!-- 8. IMPACT -->
+<div class="card">
+  <h2>8. 学术影响与衍生研究</h2>
+
+  <p>Jawahar et al. (2019) 是 "BERTology" 子领域（系统研究 BERT 内部机制的研究方向）的奠基性论文之一。其影响体现在以下几个方面：</p>
+
+  <ul style="margin-left: 24px; margin-bottom: 12px;">
+    <li><strong>方法论扩散：</strong>逐层线性探测（layer-wise linear probing）成为分析任何预训练模型内部表征的标准方法。这一方法论被应用于 GPT 系列、T5、ViT（视觉 Transformer）、以及多模态模型（如 CLIP）的表征分析</li>
+    <li><strong>层级化加工的理论框架：</strong>后续工作（Tenney et al., 2019 "BERT Rediscovers the Classical NLP Pipeline"）系统化了这一发现，将 BERT 各层与经典 NLP pipeline 的各个步骤进行了精确对应</li>
+    <li><strong>探测方法的改进：</strong>本文引发了关于"探测方法本身是否可信"的大量讨论，催生了 Control Tasks (Hewitt &amp; Liang)、Minimum Description Length probing (Voita &amp; Titov)、Causal probing (Elazar et al.) 等更严格的方法论</li>
+    <li><strong>架构设计的反馈：</strong>发现 BERT 的层次化结构后，后续的预训练模型开始有意地设计层级结构——如 BERT-wwm、ERNIE 在低层注入词级/短语级知识，Syntax-BERT 在中层注入句法子树监督</li>
+  </ul>
+</div>
+
+</div>
+</body>
+</html>

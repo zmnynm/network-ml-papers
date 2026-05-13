@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Explainability Survey (ACM TIST 2024) — 论文深度解读</title>
+<style>
+  :root { --bg: #f8f9fa; --card-bg: #ffffff; --text: #2c3e50; --text-secondary: #555; --accent: #2980b9; --accent2: #27ae60; --accent3: #c0392b; --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08); --code-bg: #f4f4f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.9; padding: 20px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; border-radius: 12px; padding: 40px 48px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .hero h1 { font-size: 28px; margin: 8px 0; line-height: 1.3; }
+  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .hero .meta { font-size: 13px; opacity: 0.7; margin-top: 12px; }
+  .hero .meta span { margin-right: 18px; }
+  .hero .tag { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--card-bg); border-radius: 10px; padding: 28px 32px; margin-bottom: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .card h2 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; color: #1a1a2e; }
+  .card h3 { font-size: 17px; margin: 18px 0 10px; color: #34495e; }
+  .card h4 { font-size: 15px; margin: 14px 0 8px; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #f0f4f8; padding: 10px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #d5d8dc; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  pre { background: var(--code-bg); padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; border-left: 4px solid var(--accent); }
+  code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .finding { background: #eaf2f8; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .highlight-box { background: linear-gradient(135deg, #fef9e7, #fdebd0); border-left: 4px solid #e67e22; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .example-box { background: #f0faf0; border-left: 4px solid var(--accent2); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .critique-box { background: #fdf2f2; border-left: 4px solid var(--accent3); padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .flow { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; font-size: 13px; }
+  .flow .step { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; text-align: center; font-weight: 600; border: 1px dashed var(--accent); }
+  .flow .arrow { font-size: 16px; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .nav-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; font-size: 13px; }
+  .nav-back:hover { text-decoration: underline; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero { padding: 20px; } .hero h1 { font-size: 20px; } .card { padding: 16px 14px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="nav-back">← 返回 Dashboard</a>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="tag" style="background:#27ae60;">Survey · 318+ Citations</span>
+  <h1>Explainability for Large Language Models: A Survey</h1>
+  <div class="subtitle">首个系统性的 LLM 可解释性分类体系：以"训练范式 x 解释范围"为轴，覆盖微调与提示学习范式下的局部与全局解释方法</div>
+  <div class="meta">
+    <span>📅 2024 年 2 月</span>
+    <span>📖 ACM TIST, Vol.15, Issue 2, pp.1–38</span>
+    <span>🏆 SCI Q1, IF 7.2, CCF B</span>
+    <span>👥 Zhao, Chen, Yang, Liu, Deng, Cai, Wang, Yin, Du</span>
+    <span>🏫 NJIT + Johns Hopkins + Wake Forest + UGA + SJTU + ICT CAS + Baidu</span>
+    <span>📊 引用量 318+</span>
+  </div>
+</div>
+
+<!-- 一、论文概览 -->
+<div class="card">
+  <h2>一、论文定位与核心贡献</h2>
+
+  <h3>1.1 为什么这篇综述是必要的</h3>
+  <p>随着 GPT 系列（GPT-3、GPT-4）、LLaMA、Claude 等大语言模型在 NLP 任务上取得惊人表现，其内部运作机制却极度不透明。传统的可解释性方法——为浅层模型或小型 DNN 设计——难以直接应用于数十亿甚至数千亿参数的 LLM。LLM 的可解释性不仅是学术问题，更关系到安全部署、公平性保证和监管合规（如 GDPR 的"解释权"）。</p>
+
+  <p>在此背景下，该领域的论文爆发式增长但高度碎片化，不同训练范式（微调 vs. 提示学习）带来了不同的可解释性挑战和方法。本文的贡献正在于提供一个<strong>统一的概念框架</strong>来组织这一快速增长但混乱的文献。</p>
+
+  <h3>1.2 三重核心贡献</h3>
+  <div class="grid-2">
+    <div class="finding">
+      <strong>1. 首个系统分类体系：</strong>按 <strong>训练范式（Training Paradigm）× 解释范围（Explanation Scope）</strong>两个正交维度建立 LLM 可解释性的完整分类学（Taxonomy），将 100+ 篇论文定位在统一的框架中。
+    </div>
+    <div class="finding">
+      <strong>2. 跨范式比较分析：</strong>首次系统对比"传统微调 LLM"和"提示学习 LLM"在可解释性上的根本差异，揭示了两类方法各自适用的解释技术和面临的独特挑战。
+    </div>
+    <div class="finding">
+      <strong>3. 应用导向的评估框架：</strong>不仅关注解释方法本身，还讨论了可解释性在模型调试、偏见消除、安全合规和知识发现中的实践价值，并给出了评估维度和标准化建议。
+    </div>
+  </div>
+</div>
+
+<!-- 二、分类框架 -->
+<div class="card">
+  <h2>二、分类框架：Training Paradigm × Explanation Scope</h2>
+
+  <h3>2.1 框架设计逻辑</h3>
+  <p>本文的核心智力贡献在于选择了<strong>两个最具区分力的维度</strong>来构建分类学：</p>
+
+  <ul>
+    <li><strong>训练范式（Training Paradigm）：</strong>模型是如何训练和使用的？微调后的专用模型需要一个方向的解释方法（基于模型内部参数的），而通过提示工程使用的通用模型需要另一个方向的方法（基于输入输出交互的）。</li>
+    <li><strong>解释范围（Explanation Scope）：</strong>我们想解释什么？单个预测的行为（局部解释）还是模型整体的知识和能力（全局解释）？</li>
+  </ul>
+
+  <h3>2.2 完整的 2×2 分类矩阵</h3>
+  <table>
+    <tr><th></th><th>传统微调范式<br>(Traditional Fine-tuning)</th><th>提示学习范式<br>(Prompting Paradigm)</th></tr>
+    <tr>
+      <td><strong>局部解释</strong><br>(Local Explanation)<br>解释单个预测</td>
+      <td>
+        • 特征归因（SHAP, IG, Attention Rollout）<br>
+        • 注意力权重分析<br>
+        • 基于示例的方法（影响函数）<br>
+        • 探测（Probing）单个预测中的知识激活
+      </td>
+      <td>
+        • 提示归因（Prompt Attribution）<br>
+        • In-Context Learning (ICL) 分析<br>
+        • Chain-of-Thought (CoT) 忠实性评估<br>
+        • 提示扰动分析
+      </td>
+    </tr>
+    <tr>
+      <td><strong>全局解释</strong><br>(Global Explanation)<br>解释模型整体</td>
+      <td>
+        • 知识神经元/电路分析<br>
+        • 探针任务聚合<br>
+        • 参数级知识定位<br>
+        • 机制可解释性
+      </td>
+      <td>
+        • 能力边界剖析（Capability Profiling）<br>
+        • 系统化提示探索<br>
+        • 涌现行为分析<br>
+        • 模型行为刻画
+      </td>
+    </tr>
+  </table>
+
+  <h3>2.3 为什么这个分类框架有效</h3>
+  <p>传统分类方法往往只按"方法类型"（如归因方法 vs. 探针方法）来划分，但这种划分忽略了 LLM 使用的根本差异：</p>
+  <ul>
+    <li>一个经过微调的 BERT 和一个通过 few-shot prompting 使用的 GPT-3，即使做同一任务，其可解释性问题的性质也完全不同</li>
+    <li>微调模型的可解释性依赖于对内部参数/表示的访问（白盒），而提示模型的访问可能受限（灰盒或黑盒）</li>
+    <li>这个分类框架自然地揭示了一个空白区域：提示学习范式下的全局解释方法相对匮乏——这指出了未来研究的一个重要方向</li>
+  </ul>
+</div>
+
+<!-- 三、五大研究方向 -->
+<div class="card">
+  <h2>三、五大核心研究方向详解</h2>
+
+  <h3>3.1 知识定位（Knowledge Localization）</h3>
+  <h4>核心问题：模型的"知识"存在哪里？</h4>
+  <p>知识定位试图回答一个看似简单但极难回答的问题：当 LLM"知道"一个事实（如"巴黎是法国的首都"）时，这个事实存储在模型的哪些参数、哪些层、哪些注意力头中？</p>
+
+  <div class="finding">
+    <strong>Causal Tracing（因果追踪）</strong>是知识定位的核心方法论：通过系统地干预模型的中间状态（将某一层的某个神经元激活"污染"或"清零"），观察最终输出的变化，从而"追踪"特定知识的存储和流转路径。
+  </div>
+
+  <p><strong>关键发现：</strong></p>
+  <ul>
+    <li>事实知识主要存储在 FFN（前馈网络）层的 MLP 参数中，而非注意力头</li>
+    <li>知识在模型中的存储具有一定的<strong>层级性</strong>：浅层处理形态/句法特征，中层存储实体/关系知识，深层整合上下文</li>
+    <li><strong>ROME（Rank-One Model Editing）：</strong>通过因果追踪定位到存储特定事实的 MLP 层后，可以通过修改该层一小部分权重来"编辑"这一事实（如将"埃菲尔铁塔在巴黎"改为"埃菲尔铁塔在罗马"），而不会影响模型的其他能力</li>
+  </ul>
+
+  <div class="highlight-box">
+    <strong>与流量预训练模型的关联：</strong>ET-BERT 等模型也是 Transformer 架构。如果 ET-BERT"学会"了某种流量模式（如"端口 443 对应 HTTPS"），这些知识同样存储在模型的某几层 MLP 参数中。因果追踪可以用来定位 ET-BERT 中的"流量知识电路"。
+  </div>
+
+  <h3>3.2 机制可解释性（Mechanistic Interpretability）</h3>
+  <h4>核心问题：模型是如何"推理"的？</h4>
+  <p>机制可解释性试图将 LLM 的复杂计算过程分解为可理解的基本单元，就像将计算机程序反编译为源代码一样。核心方法论包括：</p>
+
+  <table>
+    <tr><th>方法</th><th>描述</th><th>代表性工作</th></tr>
+    <tr>
+      <td><strong>电路发现 (Circuit Discovery)</strong></td>
+      <td>寻找从输入到输出的最小化子网络，这些子网络构成完成特定任务的"电路"</td>
+      <td>ACDC (Automatic Circuit DisCovery)、Conmy et al. (2023)</td>
+    </tr>
+    <tr>
+      <td><strong>逆向工程特征</strong></td>
+      <td>将单个神经元或神经元群的激活模式映射到人类可理解的概念</td>
+      <td>Distill Circuits 系列、Olah et al.</td>
+    </tr>
+    <tr>
+      <td><strong>因果抽象 (Causal Abstraction)</strong></td>
+      <td>用一个高层因果模型来近似低层神经网络的计算，验证两者是否在因果意义上等价</td>
+      <td>Geiger et al. (2021)</td>
+    </tr>
+  </table>
+
+  <p><strong>关键挑战：</strong>电路发现在小模型（如 GPT-2 Small）上取得了一些成功，但在更大模型上，电路的规模呈指数增长，使得完整发现几乎不可能。"自动电路发现"（ACDC）的方向是让算法自动搜索相关子网络，减少人工分析负担。</p>
+
+  <h3>3.3 涌现能力解释（Emergent Ability Explanation）</h3>
+  <h4>核心问题：LLM 的惊人能力从哪里来？</h4>
+  <p>LLM 展现的涌现能力——如思维链推理（Chain-of-Thought）、指令遵循（Instruction Following）、上下文学习（In-Context Learning）——在较小模型（<10B 参数）中不明显，在模型规模超过某个阈值后"突然出现"。但这种"涌现"的机制是什么？</p>
+
+  <div class="grid-2">
+    <div>
+      <strong>假说 A：预训练隐式习得</strong>
+      <p>涌现能力是在大规模预训练中通过数据多样性隐式习得的。模型在预训练中见过足够多的推理模式和指令格式，只是在小模型上被噪声淹没。</p>
+    </div>
+    <div>
+      <strong>假说 B：推理时期"顿悟"</strong>
+      <p>涌现能力是推理时的产物——大规模模型在推理时产生了某种自组织的计算动态，形成小模型不具备的推理回路。</p>
+    </div>
+  </div>
+
+  <p>机制可解释性正在尝试回答这个根本问题：通过电路发现分析推理过程，观察随着模型规模的增大，是否出现了本质不同的计算模式。</p>
+
+  <h3>3.4 幻觉与可解释性（Hallucination & Explainability）</h3>
+  <h4>核心问题：LLM 为什么会产生幻觉？能否通过可解释性方法检测和减少幻觉？</h4>
+  <p>LLM 的一个核心缺陷是"幻觉"——生成看似合理但事实错误的内容。可解释性方法可以从以下角度帮助理解和缓解幻觉：</p>
+  <ul>
+    <li><strong>内部状态分析：</strong>在模型生成幻觉内容时，其内部表示是否与生成事实内容时有模式上的差异？能否提前检测？</li>
+    <li><strong>因果干预：</strong>如果定位到与幻觉相关的特定参数/层，是否可以干预这些参数以减少幻觉？</li>
+    <li><strong>注意力模式：</strong>幻觉生成时，注意力分布是否异常（如过度关注某些不相关的上文 token）？</li>
+  </ul>
+  <p>这是一个高度活跃的研究方向，但尚未出现决定性的突破。</p>
+
+  <h3>3.5 评估差距（Evaluation Gap）</h3>
+  <h4>核心问题：如何判断一个"解释"是否真的是正确的？</h4>
+  <p>这是整个可解释性领域最棘手的问题，在 LLM 领域尤为突出：</p>
+
+  <table>
+    <tr><th>评估维度</th><th>定义</th><th>挑战</th></tr>
+    <tr><td>保真度 (Fidelity)</td><td>解释是否准确反映模型的内部运作？</td><td>模型的真实内部运作不可直接观测</td></tr>
+    <tr><td>忠实度 (Faithfulness)</td><td>解释是否忠实于模型的实际推理过程？</td><td>"看起来合理"的解释可能是 rationalization 而非 true mechanism</td></tr>
+    <tr><td>可理解性 (Comprehensibility)</td><td>人类是否能理解这个解释？</td><td>不同受众（ML 工程师 vs 终端用户）需要不同复杂度的解释</td></tr>
+    <tr><td>充分性 (Sufficiency)</td><td>解释是否包含了决策所需的全部信息？</td><td>一个过于简化的解释可能遗漏关键因素</td></tr>
+    <tr><td>紧凑性 (Compactness)</td><td>解释是否足够简洁？</td><td>一个包含所有信息的解释可能过长而不可操作</td></tr>
+  </table>
+
+  <div class="critique-box">
+    <strong>核心困境：</strong>保真度/忠实度和可理解性之间可能存在根本性矛盾——模型真正的推理过程可能涉及万亿次矩阵乘法，任何人类可理解的描述都是这种复杂性的高度近似。我们是否可能拥有既忠实又可理解的 LLM 解释？这个问题尚未有明确答案。
+  </div>
+</div>
+
+<!-- 四、关键方法速查表 -->
+<div class="card">
+  <h2>四、关键方法速查表</h2>
+
+  <table>
+    <tr><th>方法类别</th><th>代表方法</th><th>适用模型</th><th>解释粒度</th><th>本仓库相关论文</th></tr>
+    <tr>
+      <td>特征归因</td>
+      <td>SHAP, Integrated Gradients, Attention Rollout</td>
+      <td>BERT, GPT, 任意 Transformer</td>
+      <td>Token 级</td>
+      <td>SHAP (2017), TransSHAP (2021), xNIDS (2023)</td>
+    </tr>
+    <tr>
+      <td>探针 (Probing)</td>
+      <td>Linear Probe, Structural Probe, Edge Probing</td>
+      <td>BERT, 各层可访问的模型</td>
+      <td>层/神经元级</td>
+      <td>BERT Probing (Jawahar 2019)</td>
+    </tr>
+    <tr>
+      <td>知识定位</td>
+      <td>Causal Tracing, ROME, MEMIT</td>
+      <td>GPT, LLaMA, 可白盒访问的 LLM</td>
+      <td>参数/层级</td>
+      <td>— (未来潜在方向)</td>
+    </tr>
+    <tr>
+      <td>电路分析</td>
+      <td>Circuit Discovery, ACDC, Causal Abstraction</td>
+      <td>小规模 GPT, 可完全分析的模型</td>
+      <td>子网络级</td>
+      <td>— (未来潜在方向)</td>
+    </tr>
+    <tr>
+      <td>提示分析</td>
+      <td>Prompt Perturbation, Prompt Attribution</td>
+      <td>GPT-3/4, 黑盒 LLM</td>
+      <td>Token/提示级</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>影响函数</td>
+      <td>TracIn, Representer Point, Influence Functions</td>
+      <td>所有可梯度访问的模型</td>
+      <td>训练样本级</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td>概念解释</td>
+      <td>Concept Bottleneck, TCAV, Agua</td>
+      <td>任意模型 + 概念数据集</td>
+      <td>概念级</td>
+      <td>Agua (2025, SIGCOMM)</td>
+    </tr>
+  </table>
+
+  <div class="finding">
+    <strong>观察：</strong>本仓库中的方法主要分布在"特征归因"和"概念解释"两个类别中，而"知识定位"和"电路分析"是尚未覆盖但极具潜力的方向——特别是将电路发现应用于流量预训练 Transformer 模型（ET-BERT 等）的内部分析。
+  </div>
+</div>
+
+<!-- 五、与流量预训练模型的关联 -->
+<div class="card">
+  <h2>五、从 LLM 可解释性到流量预训练模型可解释性</h2>
+
+  <h3>5.1 为什么这个连接是有效的</h3>
+  <p>流量预训练模型（ET-BERT、MM4flow、TrafficFormer）本质上都是 Transformer 架构：</p>
+  <ul>
+    <li>ET-BERT 使用标准的 BERT 架构（双向 Transformer Encoder）处理加密流量字节序列</li>
+    <li>MM4flow 扩展为多模态 Transformer，同时处理字节和统计特征</li>
+    <li>这些模型的架构组件——多头注意力、FFN 层、残差连接、位置编码——与大语言模型的核心组件完全相同</li>
+  </ul>
+
+  <p>因此，LLM 可解释性研究中针对 Transformer 组件的所有方法，<strong>原则上都可以迁移到流量预训练模型</strong>。</p>
+
+  <h3>5.2 具体迁移路线图</h3>
+
+  <table>
+    <tr><th>LLM 可解释性方法</th><th>流量预训练模型中的对应应用</th></tr>
+    <tr>
+      <td>TransSHAP（token 级特征归因）</td>
+      <td>对 ET-BERT 的每个流量 token 计算贡献，识别哪些字节/字段驱动了分类</td>
+    </tr>
+    <tr>
+      <td>BERT Probing（层向探测）</td>
+      <td>探测 ET-BERT 各层编码了什么信息——浅层是否编码字节分布？深层是否编码协议语义？</td>
+    </tr>
+    <tr>
+      <td>知识定位（Causal Tracing）</td>
+      <td>定位 ET-BERT 中"端口 443 = HTTPS"这类映射知识的存储位置</td>
+    </tr>
+    <tr>
+      <td>电路发现（Circuit Discovery）</td>
+      <td>寻找 ET-BERT 中的"恶意流量检测电路"——哪些注意力头构成完成此任务的最小计算子图？</td>
+    </tr>
+    <tr>
+      <td>Owen 值层次归因</td>
+      <td>按协议层次（TCP 组 vs UDP 组 vs 统计组）构建联盟结构，进行层次化解释</td>
+    </tr>
+  </table>
+
+  <h3>5.3 一个具体的多方法组合案例</h3>
+  <div class="example-box">
+    <strong>案例：使用多种 LLM 可解释性方法分析 ET-BERT 的加密流量分类决策</strong>
+    <pre>
+【场景】ET-BERT 将一条加密流量分类为"视频流"
+
+【方法 1：TransSHAP — 局部归因】
+  识别出最关键的 5 个流量 token → 它们都对应"包间隔方差"和"字节熵"字段
+  → 确认模型在关注合理的特征
+
+【方法 2：BERT Probing — 层向知识分析】
+  探测每一层的表征：
+  - Layer 1-2：主要编码字节统计分布（浅层特征）
+  - Layer 3-6：编码协议语义和流模式（中层特征）
+  - Layer 7-12：整合上下文进行最终分类（深层特征）
+  → 确认模型中存在"surface→syntax→semantics"的信息处理层次
+
+【方法 3：知识定位 — 因果追踪】
+  通过干预实验发现：
+  - 修改 Layer 8 的 FFN 参数后，"端口 443"的分类行为显著改变
+  - 修改 Layer 2 的 FFN 参数则影响较小
+  → Layer 8 的 MLP 参数是"端口-服务映射"的关键存储位置
+
+【方法 4：电路发现 — 最小计算子图】
+  使用 ACDC 自动搜索发现：
+  - Head (L5, A3) + Head (L8, A7) + MLP (L9) 构成"流持续时间判断电路"
+  - 仅保留这 3 个组件，模型在流持续时间相关任务上的表现保留 90%+
+  → 证明了模型中存在功能特化的子网络
+
+【综合解释】（面向安全分析师）：
+  "ET-BERT 的分类决策可以分解为三个层次：
+   1. 浅层（L1-2）提取字节统计特征
+   2. 中层（L3-6）编码协议语义
+   3. 深层（L7-12）整合进行决策，其中 Layer 8 是端口知识的存储中心
+   模型主要依赖'统计特征组'（包间隔方差、字节熵）做出'视频流'的预测，
+   置信度高，解释合理。"
+    </pre>
+  </div>
+</div>
+
+<!-- 六、六大挑战 -->
+<div class="card">
+  <h2>六、六大挑战与未来方向</h2>
+
+  <h3>6.1 挑战全景</h3>
+
+  <table>
+    <tr><th>#</th><th>挑战</th><th>具体描述</th><th>严重程度</th></tr>
+    <tr>
+      <td>1</td>
+      <td><strong>规模挑战</strong></td>
+      <td>千亿甚至万亿参数的 LLM 使逐参数分析不可行。即便是"电路发现"——在 GPT-2 Small（124M 参数）上已有成效——扩展到 GPT-4 级别（估计 >1T 参数）也面临指数级难度增长。</td>
+      <td>🔴 极高</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>多模态扩展</strong></td>
+      <td>当前可解释性方法几乎全部针对纯文本 LLM。GPT-4V、Gemini、Claude 3/4 等多模态模型引入了图像、视频、音频等多重输入模态，每个模态的内部表示和跨模态交互都需要新的解释方法。</td>
+      <td>🟡 高</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>评估标准缺失</strong></td>
+      <td>没有统一的、被广泛认可的可解释性评估基准（benchmark）。不同论文使用不同的评估协议，结果难以公平比较。现有的"忠实度"测试（如反事实测试）过于粗粒度。</td>
+      <td>🔴 极高</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>忠实度问题</strong></td>
+      <td>许多"解释"可能只是<strong>rationalization</strong>（为已有决策找合理化理由），而非揭示模型的真实推理机制。模型可能使用一套逻辑做决策，但用另一套逻辑生成"解释"——这与人类行为中的 confabulation 类似。</td>
+      <td>🔴 极高</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><strong>从相关到因果</strong></td>
+      <td>大多数现有方法只能发现"哪些特征/参数与决策相关"，而非"哪些特征/参数因果性地决定了决策"。真正的因果分析需要干预实验，这在 LLM 规模上实施困难。</td>
+      <td>🟡 高</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><strong>实用化难题</strong></td>
+      <td>当前的可解释性研究以学术论文为主，转化为实际可用的工具面临工程挑战。对于实践者（如安全分析师、ML 工程师），需要一个"一键解释"的交互式工具，而非理解一篇 20 页的论文。</td>
+      <td>🟡 高</td>
+    </tr>
+  </table>
+
+  <h3>6.2 未来的有希望方向</h3>
+  <div class="grid-2">
+    <div class="finding">
+      <strong>可扩展方法：</strong>发展不依赖逐参数分析的"宏观"解释方法——如基于模型行为的全局刻画、系统性能力测试——而非微观的电路分析。
+    </div>
+    <div class="finding">
+      <strong>交互式解释：</strong>让用户与 LLM 进行对话式解释交互——"你为什么这样回答？""如果输入是 X 而不是 Y，你的回答会变吗？"——将解释过程动态化、交互化。
+    </div>
+    <div class="finding">
+      <strong>跨模型解释：</strong>研究不同 LLM（GPT vs LLaMA vs Claude）是否发展了相似的内部表示机制？这有助于区分"特定架构的实现细节"和"通用智能的必然结构"。
+    </div>
+    <div class="finding">
+      <strong>解释驱动的模型改进：</strong>将可解释性从"事后分析"升级为"在训练过程中用于改进模型"，如基于电路发现结果剪枝冗余注意力头、基于知识定位结果进行精确的模型编辑。
+    </div>
+  </div>
+</div>
+
+<!-- 七、本仓库定位 -->
+<div class="card">
+  <h2>七、本仓库在 LLM 可解释性全景图中的定位</h2>
+
+  <h3>7.1 已有覆盖范围</h3>
+  <p>将仓库中的现有论文映射到本文的分类框架中：</p>
+
+  <table>
+    <tr><th>仓库论文</th><th>分类框架中的位置</th><th>对应方法类别</th></tr>
+    <tr><td>SHAP (NeurIPS 2017)</td><td>微调范式 / 局部解释</td><td>特征归因</td></tr>
+    <tr><td>TransSHAP (EACL 2021)</td><td>微调范式 / 局部解释</td><td>特征归因（适配 BERT）</td></tr>
+    <tr><td>BERT Probing (ACL 2019)</td><td>微调范式 / 全局解释</td><td>探针（层向知识分析）</td></tr>
+    <tr><td>DeepAID (CCS 2021)</td><td>微调范式 / 局部解释</td><td>特征归因（安全应用）</td></tr>
+    <tr><td>xNIDS (USENIX Sec 2023)</td><td>微调范式 / 局部解释</td><td>特征归因（NIDS 应用）</td></tr>
+    <tr><td>TRUSTEE (CCS 2022)</td><td>微调范式 / 全局解释</td><td>规则提取 / 知识蒸馏</td></tr>
+    <tr><td>GEAD (CCS 2024)</td><td>微调范式 / 全局解释</td><td>规则提取（异常检测应用）</td></tr>
+    <tr><td>Agua (SIGCOMM 2025)</td><td>微调范式 / 全局解释</td><td>概念解释（LLM 辅助）</td></tr>
+    <tr><td>O-Shap (2025)</td><td>微调范式 / 局部+全局</td><td>层次化特征归因（Owen 值）</td></tr>
+  </table>
+
+  <h3>7.2 尚未覆盖但有潜力的方向</h3>
+  <div class="highlight-box">
+    <strong>仓库空白区域：</strong>
+    <ul>
+      <li><strong>提示学习范式的解释方法：</strong>仓库中几乎所有方法都属于"微调范式/白盒分析"，缺乏对黑盒提示交互的解释方法</li>
+      <li><strong>知识定位 & 电路发现：</strong>对 Transformer 模型内部进行"神经外科手术式"的分析——未来可尝试将电路发现应用于 ET-BERT/MM4flow 内部</li>
+      <li><strong>解释质量评估：</strong>仓库中有解释方法但缺乏评估解释质量的方法论和基准</li>
+    </ul>
+  </div>
+
+  <h3>7.3 方法论演进趋势对齐</h3>
+  <p>本文识别出的 LLM 可解释性发展趋势与本仓库的研究布局高度一致：</p>
+
+  <div class="flow">
+    <div class="step">特征级解释<br>(SHAP, TransSHAP)</div>
+    <div class="arrow">→</div>
+    <div class="step">概念级解释<br>(Agua, TCAV)</div>
+    <div class="arrow">→</div>
+    <div class="step">因果级解释<br>(Causal Tracing)</div>
+    <div class="arrow">→</div>
+    <div class="step">机制级解释<br>(Circuit Discovery)</div>
+  </div>
+
+  <p>仓库中的论文横跨了从"特征级"到"概念级"的演进，而"因果级"和"机制级"是值得探索的未来方向。</p>
+</div>
+
+<!-- 八、总结 -->
+<div class="card">
+  <h2>八、总结：这篇综述的核心价值</h2>
+
+  <h3>8.1 对可解释性研究者的价值</h3>
+  <ul>
+    <li>提供了<strong>导航地图</strong>：在碎片化的文献中找到自己的研究方向在整个领域中的位置</li>
+    <li>识别了<strong>研究空白</strong>：特别是提示学习范式下的全局解释方法严重不足</li>
+    <li>统一了<strong>术语体系</strong>：不同子社区使用不同术语描述类似概念，综述提供了翻译/对齐</li>
+  </ul>
+
+  <h3>8.2 对网络流量安全研究者的价值</h3>
+  <ul>
+    <li>确认了流量预训练模型（Transformer）与 LLM 可解释性方法之间的<strong>可迁移性</strong></li>
+    <li>提供了<strong>方法选择指南</strong>：针对流量模型的不同解释需求，应该选择哪类方法</li>
+    <li>警示了<strong>忠实度陷阱</strong>：在安全审计场景中使用任何可解释性方法时，必须意识到"解释"可能只是 rationalization</li>
+  </ul>
+
+  <h3>8.3 核心信息</h3>
+  <div class="finding">
+    <strong>LLM 可解释性是一个快速演进、高度碎片化但至关重要的领域。</strong>本文的分类体系（训练范式 × 解释范围）是理解这一领域的有效入口。对于将可解释性方法应用于网络流量安全的研究者，关键洞察是：
+    <br><br>
+    1. <strong>架构的共性</strong>使 LLM 可解释性方法对流量 Transformer 模型具有高可迁移性
+    <br>
+    2. <strong>领域的特殊性</strong>（安全审计的高可靠性要求）意味着需要额外关注解释的忠实度和实现不变性
+    <br>
+    3. <strong>方法的演进</strong>正从"哪些特征重要"（归因）向"模型如何推理"（机制）和"解释可信吗"（评估）发展——未来的流量模型可解释性研究应同时在这三个方向上推进
+  </div>
+</div>
+
+</div>
+</body>
+</html>
